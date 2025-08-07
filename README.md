@@ -1,215 +1,307 @@
-# 🗺️ PathWise - Be Wise About Your Paths
+# 🗺️ PathWise - Smart Directory Navigation for Zsh
 
-> Navigate with intelligence. Learn from patterns. Share with your team.
+PathWise helps you work faster by remembering the directories you visit most. Jump to your favorite folders with simple shortcuts and see how you spend your time.
 
-PathWise is a Zsh plugin that tracks your navigation patterns, helps you jump to frequent directories instantly, and provides insights into your workflow efficiency. Built with the **80-20 Human-in-the-Loop** philosophy: 80% automation, 20% human wisdom, 100% growth.
+## What PathWise Does
 
-## ✨ Features
+PathWise watches where you work and helps you:
+- Jump to favorite folders with shortcuts like `j1`, `j2`, `j3`
+- See how much time you spend in each directory
+- Track your git commits and understand your work patterns
+- Learn about your workflow to work better
 
-### Core Features
-- **📍 Smart Tracking** - Automatically tracks your most visited directories
-- **⏱️ Time Tracking** - Measures time spent in each directory for productivity insights
-- **⚡ Quick Jump** - Use `j1` through `j5` to instantly jump to your top directories  
-- **📊 Daily Rotation** - Intelligent daily reset with yesterday's data as fallback
-- **🎯 Pattern Recognition** - Learns your navigation habits over time
-- **📈 Productivity Insights** - Analyze your workflow with detailed analytics
+## Getting Started
 
-### Commands
-- `freq` - Display your most frequently visited directories with time spent
-- `freq --insights` - Show productivity analytics and navigation patterns
-- `freq --reset` - Clear all navigation data
-- `freq --config` - Configure auto-reset, display count, time tracking, and more
-- `freq --help` - Show available commands
+### Step 1: Install PathWise
 
-### Jump Shortcuts
-After visiting directories, PathWise creates dynamic shortcuts:
-- `j1` - Jump to your #1 most visited directory
-- `j2` - Jump to your #2 most visited directory
-- ... up to `j5`
+**Option A: Using Oh My Zsh** (Recommended)
 
-## 🚀 Installation
-
-### Oh My Zsh
-
-1. Clone the repository into your Oh My Zsh custom plugins directory:
+1. Copy PathWise to your plugins folder:
 ```bash
-git clone https://github.com/80-20-Human-In-The-Loop/PathWise-ZSH-Plugin.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/pathwise
+git clone https://github.com/80-20-Human-In-The-Loop/PathWise-ZSH-Plugin.git \
+  ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/pathwise
 ```
 
-2. Add `pathwise` to your plugins list in `~/.zshrc`:
+2. Add PathWise to your plugin list. Open `~/.zshrc` and find the plugins line:
 ```bash
-plugins=(git zsh-autosuggestions pathwise)
+plugins=(git pathwise)  # Add pathwise here
 ```
 
-3. Reload your shell:
+3. Restart your terminal or run:
 ```bash
 source ~/.zshrc
 ```
 
-### Manual Installation
+**Option B: Manual Installation**
 
-1. Clone the repository:
+1. Copy PathWise to your computer:
 ```bash
-git clone https://github.com/80-20-Human-In-The-Loop/PathWise-ZSH-Plugin.git ~/projects/zshplugs/pathwise
+git clone https://github.com/80-20-Human-In-The-Loop/PathWise-ZSH-Plugin.git \
+  ~/projects/zshplugs/pathwise
 ```
 
-2. Source the plugin in your `~/.zshrc`:
+2. Add this line to your `~/.zshrc` file:
 ```bash
 source ~/projects/zshplugs/pathwise/pathwise.plugin.zsh
 ```
 
-3. Reload your shell:
+3. Restart your terminal or run:
 ```bash
 source ~/.zshrc
 ```
 
-### Quick Install Script
-```bash
-curl -fsSL https://raw.githubusercontent.com/80-20-Human-In-The-Loop/PathWise-ZSH-Plugin/main/install.sh | bash
-```
+### Step 2: Start Using PathWise
 
-## 📖 Usage
-
-### Basic Usage
-
-Simply navigate as you normally would. PathWise tracks your directories automatically:
+After installation, PathWise starts working right away. Navigate to some folders:
 
 ```bash
-cd ~/projects/my-app
 cd ~/Documents
 cd ~/Downloads
-
-freq  # See your top directories
+cd ~/projects
 ```
 
-Output:
+Now see your most visited directories:
+```bash
+freq
+```
+
+You will see something like this:
 ```
 📍 Your frequent directories:
 
-  [j1] ~/projects/my-app        (15 visits · 2h 34m today)
-  [j2] ~/Documents              (8 visits · 45m 12s today)
-  [j3] ~/Downloads              (5 visits · 12m 5s today)
-  [j4] ~/.config                (12 visits · 1h 20m yesterday)
-  [j5] ~/projects               (10 visits · 58m 30s yesterday)
+  [j1] ~/projects          (3 visits · 15m 30s today)
+  [j2] ~/Documents         (2 visits · 5m 12s today)
+  [j3] ~/Downloads         (1 visit · 2m 5s today)
 
 💡 Commands: freq | freq --insights | freq --reset | freq --config
 ```
 
+### Step 3: Use Jump Shortcuts
+
+PathWise creates shortcuts for your top 5 directories:
+
+```bash
+j1  # Jump to your #1 most visited directory
+j2  # Jump to your #2 most visited directory
+j3  # Jump to your #3 most visited directory
+```
+
+These shortcuts update as your habits change!
+
+## Configuration Guide
+
+PathWise has settings you can change. Run `freq --config` to see this menu:
+
+```
+🎨 PathWise Configuration
+
+Current Settings:
+  • Auto-reset: true
+  • Reset hour: 0 (midnight)
+  • Show count: 5 directories
+  • Track time: true
+  • Minimum time: 5 seconds
+  • Track git: true
+  • Sort by: time
+
+Options: on/off, 0-23, 1-10, on/off, 1-60, on/off, time/visits
+Enable auto-reset? (current: true):
+```
+
+### What Each Setting Does
+
+1. **Auto-reset** (on/off)
+   - Starts fresh tracking each day at midnight
+   - Yesterday's data becomes backup
+
+2. **Reset hour** (0-23)
+   - When to start fresh (0 = midnight, 12 = noon)
+   - Only works if auto-reset is on
+
+3. **Show count** (1-10)
+   - How many directories to show in `freq` command
+   - More directories = more jump shortcuts
+
+4. **Track time** (on/off)
+   - Measure time spent in each directory
+   - Helps you understand your work patterns
+
+5. **Minimum time** (1-60 seconds)
+   - Only count visits longer than this
+   - Prevents quick navigation from counting
+
+6. **Track git** (on/off)
+   - Analyze your git commits in each directory
+   - Shows what kind of work you do where
+
+7. **Sort by** (time/visits)
+   - Order directories by time spent or visit count
+   - Choose what matters to you
+
+## Git Commit Tracking
+
+When you enable git tracking, PathWise analyzes your commits and shows what type of work you do:
+
+```bash
+freq  # With git tracking enabled
+```
+
+Shows:
+```
+📍 Your frequent directories:
+
+  [j1] ~/projects/my-app (15 visits · 2h 34m today) [25 commits]
+       📊 Git Activity:
+       🐛 Fixes: 8 commits (32%) "bugfix"
+       ✨ Features: 6 commits (24%) "add"
+       📝 Docs: 4 commits (16%) "readme"
+       ♻️ Refactor: 3 commits (12%) "cleanup"
+       🔧 Config: 2 commits (8%) "setup"
+       🧹 Other: 2 commits (8%)
+```
+
+PathWise recognizes 11 types of commits:
+- 🔄 **Reverts** - Undoing changes
+- 🐛 **Fixes** - Bug fixes and corrections
+- ✨ **Features** - New functionality
+- 📝 **Documentation** - README and docs
+- ♻️ **Refactor** - Code improvements
+- ⚡ **Performance** - Speed improvements
+- 🧪 **Tests** - Test files
+- 🔧 **Config** - Settings and setup
+- 🚀 **Deploy** - Release and deployment
+- 🎨 **Style** - Formatting changes
+- 🧹 **Chore** - Maintenance tasks
+
+## Commands Reference
+
+### Basic Commands
+
+```bash
+freq              # Show your top directories
+freq --help       # See all commands
+freq --insights   # Show detailed analytics
+freq --reset      # Clear all data and start fresh
+freq --config     # Change settings
+```
+
+### Understanding the Display
+
+When you run `freq`, you see:
+```
+[j1] ~/projects/app (10 visits · 1h 20m today)
+ ↑    ↑              ↑           ↑
+ │    │              │           └─ Time spent today
+ │    │              └─ How many times visited
+ │    └─ Directory path
+ └─ Shortcut to jump there
+```
+
 ### Productivity Insights
 
-Get detailed analytics about your navigation patterns:
+See detailed information about your work:
 
 ```bash
 freq --insights
 ```
 
-Output:
-```
-📊 Today's Activity Summary
-────────────────────────────
-Total directories visited: 12
-Total navigation events: 47
-Total tracked time: 4h 23m
+This shows:
+- Total directories visited today
+- Time spent in each directory
+- Your busiest work hours
+- Common navigation patterns
 
-⏱️  Time Distribution:
-  ~/projects/my-app              2h 34m (58%)
-  ~/Documents                    45m 12s (17%)
-  ~/Downloads                    12m 5s (5%)
+## Safe Uninstallation
 
-📈 Session Patterns:
-  Peak activity hour: 14:00
-  Average time per directory: 12m 45s
+If you need to remove PathWise, we have a safe uninstall script that:
+- Backs up your settings
+- Removes all PathWise files
+- Cleans your .zshrc file
+- Lets you keep your data if you want
 
-🔄 Common Navigation Patterns:
-  ~/projects → ~/projects/my-app (8x)
-  ~/Downloads → ~/Documents (5x)
-  ~/projects/my-app → ~/.config (3x)
+### How to Uninstall
+
+1. Run the uninstall script:
+```bash
+./uninstall.sh
 ```
 
-### Configuration
+2. The script will:
+   - Find your PathWise installation
+   - Ask for confirmation
+   - Create a backup of .zshrc
+   - Remove PathWise from your plugins
+   - Ask if you want to keep your data
 
-Configure PathWise to match your workflow:
+3. After uninstalling:
+   - Your .zshrc backup is saved as `~/.zshrc.pathwise-backup`
+   - Reload your shell: `source ~/.zshrc`
+   - Your navigation data is preserved unless you chose to delete it
 
+### What Gets Removed
+
+The uninstaller removes:
+- PathWise plugin directory
+- PathWise entries in .zshrc
+- Jump shortcuts (j1, j2, etc.)
+- Configuration settings (optional)
+- Navigation history (optional)
+
+## Troubleshooting
+
+### PathWise Not Working?
+
+1. Check if PathWise is loaded:
+```bash
+echo $FREQ_DIRS_LOADED
+```
+Should show: `true`
+
+2. Reload your shell:
+```bash
+source ~/.zshrc
+```
+
+3. Check for errors:
+```bash
+freq --help
+```
+
+### Jump Shortcuts Not Working?
+
+First visit some directories, then run `freq` to create shortcuts.
+
+### Time Tracking Not Working?
+
+1. Check if time tracking is enabled:
 ```bash
 freq --config
 ```
 
-Options:
-- **Auto-reset**: Daily rotation at midnight (default: enabled)
-- **Reset hour**: When to rotate data (default: 0/midnight)
-- **Show count**: Number of directories to display (default: 5)
-- **Track time**: Enable time tracking (default: enabled)
-- **Min time**: Minimum seconds in directory to track (default: 5)
+2. Make sure you stay in directories longer than the minimum time (default: 5 seconds)
 
-### Startup Display
+### Data Not Resetting Daily?
 
-PathWise can show your frequent directories when you open a new terminal. This is configured in your `.zshrc` and works with Powerlevel10k and other themes.
+Check your auto-reset settings:
+```bash
+freq --config
+```
+Make sure auto-reset is "on" and reset hour is correct.
 
-## 🎯 Philosophy: 80-20 Human-in-the-Loop
+## Support
 
-PathWise follows the **80-20 Human-in-the-Loop** principle:
-
-- **80% Automation**: PathWise handles tracking, rotation, and shortcut creation automatically
-- **20% Human Wisdom**: You decide which patterns to keep and optimize
-- **100% Learning**: Every navigation teaches you about your workflow
-
-This approach ensures you become more efficient while understanding your patterns, rather than blindly depending on automation.
-
-## 🔮 Upcoming Features
-
-Aligned with our 80-20 philosophy, these features are planned:
-
-### 📚 Educational Mode (`freq --edu`)
-- Learn why certain directories matter
-- Tips for better organization
-- Navigation best practices
-- Progress tracking
-
-### 🛡️ Security Audit (`freq --audit`)
-- Sensitive directory access monitoring
-- Unusual pattern detection
-- Security best practices
-- Directory health checks
-
-### 🤝 Team Features (`freq --export`)
-- Export navigation patterns for onboarding
-- Share project navigation maps in PRs
-- Team workflow optimization
-
-## 🤝 Contributing
-
-We welcome contributions that align with the 80-20 Human-in-the-Loop philosophy! 
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### Development
-
-1. Fork the repository
-2. Create your feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes
-4. Test thoroughly
-5. Commit: `git commit -m 'Add amazing feature'`
-6. Push: `git push origin feature/amazing-feature`
-7. Open a Pull Request
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Part of the [80-20-Human-In-The-Loop](https://github.com/80-20-Human-In-The-Loop) ecosystem
-- Inspired by tools like `z`, `autojump`, and `fasd`
-- Built for developers who value understanding over just automation
-
-## 💬 Support
+Need help? Found a bug?
 
 - **Issues**: [GitHub Issues](https://github.com/80-20-Human-In-The-Loop/PathWise-ZSH-Plugin/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/80-20-Human-In-The-Loop/PathWise-ZSH-Plugin/discussions)
-- **Philosophy**: [80-20 Human-in-the-Loop](https://github.com/80-20-Human-In-The-Loop/Community)
+- **Updates**: Watch the repository for new features
+
+## License
+
+MIT License - You can use PathWise for any purpose. See [LICENSE](LICENSE) file for details.
 
 ---
 
-**PathWise** - Because being wise about your paths makes you a better developer 🗺️
+**PathWise** - Navigate smarter, work better 🗺️
 
-Built with ❤️ and the belief that humans and AI should work together, not apart.
+Made with care by the 80-20 Human-In-The-Loop community.

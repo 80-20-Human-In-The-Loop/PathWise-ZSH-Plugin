@@ -796,9 +796,10 @@ freq() {{
             printf "\\033[36mConfigure:\\033[0m\\n"
             
             # Auto-reset configuration
-            printf "\\033[96m  Enable auto-reset?\\033[0m (y/n) \\033[90m[${{FREQ_AUTO_RESET}}]\\033[0m: "
-            read response
+            printf "\\033[96m  Enable auto-reset?\\033[0m (y/n) \\033[90m[${{FREQ_AUTO_RESET}}]\\033[0m\\n"
             printf "  \\033[90m→ Options: y=enable daily reset, n=keep data forever, Enter=no change\\033[0m\\n"
+            printf "  \\033[96m>\\033[0m "
+            read response
             if [[ -n "$response" ]]; then
                 if [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]; then
                     FREQ_AUTO_RESET="true"
@@ -809,26 +810,29 @@ freq() {{
             echo ""
             
             if [[ "$FREQ_AUTO_RESET" == "true" ]]; then
-                printf "\\033[96m  Reset hour\\033[0m (0-23) \\033[90m[${{FREQ_RESET_HOUR}}]\\033[0m: "
-                read response
+                printf "\\033[96m  Reset hour\\033[0m (0-23) \\033[90m[${{FREQ_RESET_HOUR}}]\\033[0m\\n"
                 printf "  \\033[90m→ Options: 0=midnight, 12=noon, 23=11pm, Enter=no change\\033[0m\\n"
+                printf "  \\033[96m>\\033[0m "
+                read response
                 if [[ -n "$response" ]] && [[ "$response" =~ ^[0-9]+$ ]] && [[ "$response" -ge 0 ]] && [[ "$response" -le 23 ]]; then
                     FREQ_RESET_HOUR="$response"
                 fi
                 echo ""
             fi
             
-            printf "\\033[96m  Number of directories to show\\033[0m (1-10) \\033[90m[${{FREQ_SHOW_COUNT}}]\\033[0m: "
-            read response
+            printf "\\033[96m  Number of directories to show\\033[0m (1-10) \\033[90m[${{FREQ_SHOW_COUNT}}]\\033[0m\\n"
             printf "  \\033[90m→ Options: 1-10 directories, Enter=no change\\033[0m\\n"
+            printf "  \\033[96m>\\033[0m "
+            read response
             if [[ -n "$response" ]] && [[ "$response" =~ ^[0-9]+$ ]] && [[ "$response" -ge 1 ]] && [[ "$response" -le 10 ]]; then
                 FREQ_SHOW_COUNT="$response"
             fi
             echo ""
             
-            printf "\\033[96m  Enable time tracking?\\033[0m (y/n) \\033[90m[${{FREQ_TRACK_TIME}}]\\033[0m: "
-            read response
+            printf "\\033[96m  Enable time tracking?\\033[0m (y/n) \\033[90m[${{FREQ_TRACK_TIME}}]\\033[0m\\n"
             printf "  \\033[90m→ Options: y=track time spent, n=only track visits, Enter=no change\\033[0m\\n"
+            printf "  \\033[96m>\\033[0m "
+            read response
             if [[ -n "$response" ]]; then
                 if [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]; then
                     FREQ_TRACK_TIME="true"
@@ -839,18 +843,20 @@ freq() {{
             echo ""
             
             if [[ "$FREQ_TRACK_TIME" == "true" ]]; then
-                printf "\\033[96m  Minimum time to track\\033[0m (seconds) \\033[90m[${{FREQ_MIN_TIME}}]\\033[0m: "
-                read response
+                printf "\\033[96m  Minimum time to track\\033[0m (seconds) \\033[90m[${{FREQ_MIN_TIME}}]\\033[0m\\n"
                 printf "  \\033[90m→ Options: 0=track all, 5=default, 60=only 1min+, Enter=no change\\033[0m\\n"
+                printf "  \\033[96m>\\033[0m "
+                read response
                 if [[ -n "$response" ]] && [[ "$response" =~ ^[0-9]+$ ]]; then
                     FREQ_MIN_TIME="$response"
                 fi
                 echo ""
             fi
             
-            printf "\\033[96m  Enable git tracking?\\033[0m (y/n) \\033[90m[${{FREQ_TRACK_GIT}}]\\033[0m: "
-            read response
+            printf "\\033[96m  Enable git tracking?\\033[0m (y/n) \\033[90m[${{FREQ_TRACK_GIT}}]\\033[0m\\n"
             printf "  \\033[90m→ Options: y=track git commits, n=disable git features, Enter=no change\\033[0m\\n"
+            printf "  \\033[96m>\\033[0m "
+            read response
             if [[ -n "$response" ]]; then
                 if [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]; then
                     FREQ_TRACK_GIT="true"
@@ -860,9 +866,10 @@ freq() {{
             fi
             echo ""
             
-            printf "\\033[96m  Sort by\\033[0m (visits/time/commits) \\033[90m[${{FREQ_SORT_BY}}]\\033[0m: "
-            read response
+            printf "\\033[96m  Sort by\\033[0m (visits/time/commits) \\033[90m[${{FREQ_SORT_BY}}]\\033[0m\\n"
             printf "  \\033[90m→ Options: visits=most visited, time=longest time, commits=most commits, Enter=no change\\033[0m\\n"
+            printf "  \\033[96m>\\033[0m "
+            read response
             if [[ -n "$response" ]] && [[ "$response" == "visits" || "$response" == "time" || "$response" == "commits" ]]; then
                 FREQ_SORT_BY="$response"
             fi
