@@ -158,7 +158,7 @@ _show_freq_dirs_once() {
     
     # Quick check for data
     if [[ -s "$HOME/.frequent_dirs.today" ]] || [[ -s "$HOME/.frequent_dirs.yesterday" ]]; then
-        freq
+        wfreq
     fi
     
     # Remove from precmd after showing
@@ -177,16 +177,17 @@ echo ""
 echo -e "${BOLD}Quick Start:${NC}"
 echo -e "  1. Reload your shell: ${BLUE}source ~/.zshrc${NC}"
 echo -e "  2. Navigate to some directories"
-echo -e "  3. Type ${BLUE}freq${NC} to see your frequent paths"
-echo -e "  4. Use ${BLUE}j1${NC} through ${BLUE}j5${NC} to jump instantly"
+echo -e "  3. Type ${BLUE}wfreq${NC} to see your frequent paths"
+echo -e "  4. Use ${BLUE}wj1${NC} through ${BLUE}wj5${NC} to jump instantly"
 echo ""
 echo -e "${BOLD}Commands:${NC}"
-echo -e "  ${BLUE}freq${NC}          - Show frequent directories"
-echo -e "  ${BLUE}freq --config${NC} - Configure settings"
-echo -e "  ${BLUE}freq --reset${NC}  - Clear data"
-echo -e "  ${BLUE}freq --help${NC}   - Show help"
+echo -e "  ${BLUE}wfreq${NC}          - Show frequent directories"
+echo -e "  ${BLUE}wfreq --config${NC} - Configure settings"
+echo -e "  ${BLUE}wfreq --reset${NC}  - Clear data"
+echo -e "  ${BLUE}wfreq --help${NC}   - Show help"
 echo ""
 echo -e "${BOLD}Philosophy:${NC}"
 echo -e "  80% automation, 20% human wisdom, 100% growth 🚀"
+echo -e "  Learn more: ${BLUE}https://github.com/80-20-Human-In-The-Loop/Community${NC}"
 echo ""
 echo -e "Happy navigating! 🗺️"

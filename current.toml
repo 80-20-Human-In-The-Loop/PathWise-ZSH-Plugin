@@ -1,0 +1,70 @@
+[metadata]
+exported_at = "2025-08-07T13:19:39-04:00"
+hostname = "mathew-All-Series"
+user = "mathew"
+filter = "~/projects/zshplugs/pathwise"
+tracking_period = "today + yesterday"
+sort_method = "time"
+directories_shown = 5
+
+[summary]
+total_directories = 1
+total_visits = 2
+total_time_seconds = 557
+total_time_formatted = "9m 17s"
+total_commits = 9
+
+[time_patterns]
+peak_hour = 03
+average_session_minutes = 6
+
+[[directories]]
+path = "~/projects/zshplugs/pathwise"
+visits = 2
+time_seconds = 557
+time_formatted = "9m 17s"
+last_visited = "today"
+git_commits = 9
+
+[directories.tools_used]
+wfreq = 2
+nano = 1
+./install.sh = 1
+cd = 1
+
+[directories.git_categories]
+# Categories based on recent commits
+
+# Top Tools Analysis
+# Shows where each tool is most frequently used
+
+[tools.wfreq]
+total_uses = 2
+category = "tool"
+directories = [
+    { path = "~/projects/zshplugs/pathwise", uses = 2, percentage = 100 },
+]
+
+[tools.nano]
+total_uses = 1
+category = "editor"
+directories = [
+    { path = "~/projects/zshplugs/pathwise", uses = 1, percentage = 100 },
+]
+
+[tools../install.sh]
+total_uses = 1
+category = "script"
+directories = [
+    { path = "~/projects/zshplugs/pathwise", uses = 1, percentage = 100 },
+]
+
+[tools.cd]
+total_uses = 1
+category = "file_tool"
+directories = [
+    { path = "~/projects/zshplugs/pathwise", uses = 1, percentage = 100 },
+]
+
+# Navigation Patterns
+

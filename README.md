@@ -145,39 +145,92 @@ Enable auto-reset? (current: true):
 
 ## Git Commit Tracking
 
-When you enable git tracking, PathWise analyzes your commits and shows what type of work you do:
+When you enable git tracking, PathWise tracks your commits and categorizes them.
 
-```bash
-wfreq  # With git tracking enabled
-```
+### In Regular Display (`wfreq`)
 
-Shows:
+Shows commit count for each directory:
+
 ```
 PathWise Directory Frequency:
 
   [wj1] ~/projects/my-app
       ├─ 15 visits · 2h 34m today [25 commits]
-       📊 Git Activity:
-       🐛 Fixes: 8 commits (32%) "bugfix"
-       ✨ Features: 6 commits (24%) "add"
-       📝 Docs: 4 commits (16%) "readme"
-       ♻️ Refactor: 3 commits (12%) "cleanup"
-       🔧 Config: 2 commits (8%) "setup"
-       🧹 Other: 2 commits (8%)
+  [wj2] ~/projects/another-app
+      ├─ 8 visits · 1h 20m today [12 commits]
 ```
 
-PathWise recognizes 11 types of commits:
-- 🔄 **Reverts** - Undoing changes
-- 🐛 **Fixes** - Bug fixes and corrections
-- ✨ **Features** - New functionality
-- 📝 **Documentation** - README and docs
-- ♻️ **Refactor** - Code improvements
-- ⚡ **Performance** - Speed improvements
-- 🧪 **Tests** - Test files
-- 🔧 **Config** - Settings and setup
-- 🚀 **Deploy** - Release and deployment
-- 🎨 **Style** - Formatting changes
-- 🧹 **Chore** - Maintenance tasks
+### In Insights View (`wfreq --insights`)
+
+Shows detailed commit breakdown and categorization:
+
+```
+📊 Git Activity Analysis:
+  Total commits today: 25
+
+  Activity breakdown:
+    🐛 Fixes: 8 commits (32%) "bugfix"
+    ✨ Features: 6 commits (24%) "add"
+    📝 Documentation: 4 commits (16%) "readme"
+    ♻️ Refactor: 3 commits (12%) "cleanup"
+    🔧 Config: 2 commits (8%) "setup"
+    🧹 Other: 2 commits (8%)
+
+  Most active project: ~/projects/my-app (25 commits)
+```
+
+### Commit Categories
+
+PathWise automatically categorizes commits by scanning commit messages for keywords. It uses a priority-based scoring system - if multiple keywords match, the category with the highest priority wins.
+
+**How It Works:**
+1. PathWise scans each commit message for keywords
+2. Each category has a priority (100 = highest, 5 = lowest)
+3. Score = (number of matching keywords) × (category priority)
+4. Commit is assigned to the category with the highest score
+5. In insights, you'll see which keyword triggered the categorization
+
+**Categories and Keywords (by priority):**
+
+- 🔄 **Reverts** (Priority: 100) - Undoing changes
+  - Keywords: `revert`, `rollback`, `undo`, `back out`, `restore`, `reset`, `reverse`
+  
+- 🐛 **Fixes** (Priority: 90) - Bug fixes and corrections
+  - Keywords: `fix`, `bugfix`, `hotfix`, `patch`, `bug`, `resolve`, `issue`, `error`, `crash`, `broken`, `typo`
+  
+- ✨ **Features** (Priority: 80) - New functionality
+  - Keywords: `feat`, `feature`, `add`, `new`, `implement`, `introduce`, `create`, `enhance`, `extend`, `support`
+  
+- ⚡ **Performance** (Priority: 70) - Speed improvements
+  - Keywords: `perf`, `performance`, `optimize`, `faster`, `speed`, `improve`, `boost`, `efficient`, `cache`
+  
+- ♻️ **Refactor** (Priority: 60) - Code improvements
+  - Keywords: `refactor`, `restructure`, `rewrite`, `rework`, `simplify`, `extract`, `rename`, `reorganize`, `cleanup`
+  
+- 🧪 **Tests** (Priority: 50) - Test files
+  - Keywords: `test`, `testing`, `spec`, `coverage`, `unit`, `integration`, `e2e`, `jest`, `pytest`, `mock`
+  
+- 📦 **Build** (Priority: 40) - Build system
+  - Keywords: `build`, `compile`, `bundle`, `webpack`, `rollup`, `vite`, `npm`, `yarn`, `package`, `dist`
+  
+- 🔄 **CI/CD** (Priority: 30) - Continuous integration
+  - Keywords: `ci`, `cd`, `pipeline`, `github actions`, `travis`, `jenkins`, `deploy`, `release`, `docker`
+  
+- 📝 **Documentation** (Priority: 20) - README and docs
+  - Keywords: `docs`, `documentation`, `readme`, `comment`, `guide`, `tutorial`, `example`, `changelog`
+  
+- 🎨 **Style** (Priority: 10) - Formatting changes
+  - Keywords: `style`, `format`, `lint`, `prettier`, `eslint`, `whitespace`, `indent`, `spacing`
+  
+- 🧹 **Chore** (Priority: 5) - Maintenance tasks
+  - Keywords: `chore`, `update`, `upgrade`, `bump`, `deps`, `dependency`, `version`, `maintain`, `misc`
+
+**Example:** A commit message "fix: add new feature to resolve performance issue" would score:
+- Fixes: 2 keywords × 90 = 180 points (winner!)
+- Features: 1 keyword × 80 = 80 points
+- Performance: 1 keyword × 70 = 70 points
+
+Result: Categorized as "🐛 Fixes"
 
 ## Commands Reference
 
