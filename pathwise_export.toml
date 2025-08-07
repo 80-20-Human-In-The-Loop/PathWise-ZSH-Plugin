@@ -1,5 +1,5 @@
 [metadata]
-exported_at = "2025-08-07T14:37:01-04:00"
+exported_at = "2025-08-07T19:20:58-04:00"
 hostname = "mathew-All-Series"
 user = "mathew"
 filter = "all"
@@ -8,101 +8,118 @@ sort_method = "time"
 directories_shown = 5
 
 [summary]
-total_directories = 3
-total_visits = 8
-total_time_seconds = 3984
-total_time_formatted = "1h 6m"
-total_commits = 9
+total_directories = 5
+total_visits = 10
+total_time_seconds = 4723
+total_time_formatted = "1h 18m"
+total_commits = 4
 
 [time_patterns]
-peak_hour = 03
-average_session_minutes = 7
+peak_hour = 19
+average_session_minutes = 11
 
 [[directories]]
 path = "~/python-packages/Django-Mercury-Performance-Testing"
-visits = 1
-time_seconds = 2728
-time_formatted = "45m 28s"
+visits = 4
+time_seconds = 3556
+time_formatted = "59m 16s"
 last_visited = "today"
-git_commits = 0
+git_commits = 3
 
 [directories.tools_used]
-wfreq = 3
-wj2 = 1
-pytest = 1
-git = 1
-avn = 1
+./test_runner.py = 3
+gp = 1
+gcm = 1
+ga. = 1
+
+[directories.git_categories]
+features = 2
+tests = 1
 
 [[directories]]
-path = "~/.oh-my-zsh/custom/plugins/pathwise"
-visits = 3
-time_seconds = 692
-time_formatted = "11m 32s"
+path = "~/python-packages/Django-Mercury-Performance-Testing/docs/wikis"
+visits = 1
+time_seconds = 526
+time_formatted = "8m 46s"
 last_visited = "today"
 git_commits = 0
 
 [directories.tools_used]
-wfreq = 2
-nano = 1
-ls = 1
+cd = 1
+
+[[directories]]
+path = "~/Documents/wikis"
+visits = 1
+time_seconds = 314
+time_formatted = "5m 14s"
+last_visited = "today"
+git_commits = 0
 
 [[directories]]
 path = "~/projects/zshplugs/pathwise"
-visits = 4
-time_seconds = 564
-time_formatted = "9m 24s"
+visits = 2
+time_seconds = 262
+time_formatted = "4m 22s"
 last_visited = "today"
-git_commits = 9
+git_commits = 1
 
 [directories.tools_used]
-nano = 3
-wfreq = 2
-./install.sh = 2
-rm = 1
-cd = 1
+git = 4
+./test_runner.py = 1
+claude = 1
 
 [directories.git_categories]
-other = 9
+chore = 1
+
+[[directories]]
+path = "~/python-packages/Django-Mercury-Performance-Testing/docs"
+visits = 2
+time_seconds = 65
+time_formatted = "1m 5s"
+last_visited = "today"
+git_commits = 0
+
+[directories.tools_used]
+cd = 1
 
 # Top Tools Analysis
 # Shows where each tool is most frequently used
 
-[tools.wfreq]
-total_uses = 7
-category = "tool"
-directories = [
-    { path = "~/python-packages/Django-Mercury-Performance-Testing", uses = 3, percentage = 42 },
-    { path = "~/projects/zshplugs/pathwise", uses = 2, percentage = 28 },
-    { path = "~/.oh-my-zsh/custom/plugins/pathwise", uses = 2, percentage = 28 },
-]
-
-[tools.nano]
+[tools../test_runner.py]
 total_uses = 4
-category = "editor"
-directories = [
-    { path = "~/projects/zshplugs/pathwise", uses = 3, percentage = 75 },
-    { path = "~/.oh-my-zsh/custom/plugins/pathwise", uses = 1, percentage = 25 },
-]
-
-[tools../install.sh]
-total_uses = 2
 category = "script"
 directories = [
-    { path = "~/projects/zshplugs/pathwise", uses = 2, percentage = 100 },
+    { path = "~/python-packages/Django-Mercury-Performance-Testing", uses = 3, percentage = 75 },
+    { path = "~/projects/zshplugs/pathwise", uses = 1, percentage = 25 },
 ]
 
-[tools.wj2]
+[tools.git]
+total_uses = 4
+category = "version_control"
+directories = [
+    { path = "~/projects/zshplugs/pathwise", uses = 4, percentage = 100 },
+]
+
+[tools.cd]
+total_uses = 2
+category = "file_tool"
+directories = [
+    { path = "~/python-packages/Django-Mercury-Performance-Testing/docs/wikis", uses = 1, percentage = 50 },
+    { path = "~/python-packages/Django-Mercury-Performance-Testing/docs", uses = 1, percentage = 50 },
+]
+
+[tools.gp]
 total_uses = 1
 category = "tool"
 directories = [
     { path = "~/python-packages/Django-Mercury-Performance-Testing", uses = 1, percentage = 100 },
 ]
 
-[tools.rm]
+[tools.gcm]
 total_uses = 1
-category = "file_tool"
+category = "tool"
 directories = [
-    { path = "~/projects/zshplugs/pathwise", uses = 1, percentage = 100 },
+    { path = "~/python-packages/Django-Mercury-Performance-Testing", uses = 1, percentage = 100 },
 ]
 
 # Navigation Patterns
@@ -113,17 +130,22 @@ to = "~/projects/zshplugs/pathwise"
 count = 1
 
 [[navigation_patterns]]
-from = "~/projects/zshplugs/pathwise"
-to = "~/python-packages/Django-Mercury-Performance-Testing"
-count = 1
-
-[[navigation_patterns]]
-from = "~/projects/zshplugs/pathwise"
-to = "~/.oh-my-zsh/custom/plugins/pathwise"
-count = 1
-
-[[navigation_patterns]]
-from = "~/.oh-my-zsh/custom/plugins/pathwise"
+from = "~/python-packages/Django-Mercury-Performance-Testing/docs/wikis"
 to = "~/projects/zshplugs/pathwise"
+count = 1
+
+[[navigation_patterns]]
+from = "~/python-packages/Django-Mercury-Performance-Testing/docs"
+to = "~/python-packages/Django-Mercury-Performance-Testing/docs/wikis"
+count = 1
+
+[[navigation_patterns]]
+from = "~/projects/zshplugs/pathwise"
+to = "~/Documents/wikis"
+count = 1
+
+[[navigation_patterns]]
+from = "~/Documents/wikis"
+to = "~/python-packages/Django-Mercury-Performance-Testing/docs"
 count = 1
 

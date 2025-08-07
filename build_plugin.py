@@ -560,11 +560,12 @@ _freq_dirs_analyze_tools_multi() {
 
 def generate_tool_tracking():
     """Generate tool usage tracking functions"""
-    # Get list of known tools for categorization
-    known_tools = []
+    # Generate case statements for tool categorization
+    category_cases = []
     for category, data in TRACKED_TOOLS.items():
-        known_tools.extend(data['tools'])
-    known_tools_pattern = '|'.join(known_tools)
+        tools_pattern = '|'.join(data['tools'])
+        category_cases.append(f'        {tools_pattern})\n            tool_type="{category}"\n            ;;')
+    category_case_block = '\n'.join(category_cases)
     
     return f'''
 # Track tool usage
@@ -589,7 +590,7 @@ _freq_dirs_track_tool() {{
     
     # Skip PathWise's own commands to avoid noise in tool tracking
     case "$tool" in
-        wfreq|wj1|wj2|wj3|wj4|wj5|wj6|wj7|wj8|wj9|wj10)
+        wfreq|wj1|wj2|wj3|wj4|wj5|wj6|wj7|wj8|wj9|wj10|_freq_dirs_git_wrapper)
             return
             ;;
     esac
@@ -597,29 +598,67 @@ _freq_dirs_track_tool() {{
     # Determine if it's a custom script (starts with ./ or ../)
     local is_custom_script=false
     local tool_to_track="$tool"
+    local tool_type="other"
+    local alias_info=""
+    
     if [[ "$tool" == ./* ]] || [[ "$tool" == ../* ]]; then
         is_custom_script=true
         # Keep the ./ or ../ prefix for custom scripts
         tool_to_track="$tool"
+        tool_type="custom"
+    else
+        # Check if it's an alias and resolve it
+        local type_output=$(type "$tool" 2>/dev/null | head -1)
+        if [[ "$type_output" == *"is an alias for"* ]]; then
+            # Extract the actual command from the alias
+            local real_cmd=$(echo "$type_output" | sed 's/.*is an alias for //' | sed "s/'//g")
+            # Get the first word of the real command (the actual tool)
+            local real_tool=$(echo "$real_cmd" | awk '{{print $1}}')
+            
+            # Special case: if git is aliased to our wrapper, treat it as git
+            if [[ "$tool" == "git" ]] && [[ "$real_tool" == "_freq_dirs_git_wrapper" ]]; then
+                tool_to_track="git"
+                tool_type="version_control"
+            # If it's a git alias, track as git
+            elif [[ "$real_tool" == "git" ]]; then
+                tool_to_track="git"
+                tool_type="version_control"
+                # Extract git subcommand if present
+                local git_subcmd=$(echo "$real_cmd" | awk '{{print $2}}')
+                if [[ -n "$git_subcmd" ]]; then
+                    alias_info="|alias:$tool=$git_subcmd"
+                else
+                    alias_info="|alias:$tool"
+                fi
+            else
+                # Use the resolved tool
+                tool_to_track="$real_tool"
+                alias_info="|alias:$tool"
+            fi
+        fi
     fi
     
     # Check if it's an actual executable command or custom script
-    if [[ "$is_custom_script" == "true" ]] || command -v "$tool" >/dev/null 2>&1; then
-        local tool_path=$(which "$tool" 2>/dev/null)
-        local tool_type="other"
+    if [[ "$is_custom_script" == "true" ]] || command -v "$tool_to_track" >/dev/null 2>&1; then
         local current_dir="${{PWD/#$HOME/~}}"
         
-        # Categorize the tool
-        if [[ "$is_custom_script" == "true" ]]; then
-            tool_type="custom"  # Scripts run with ./ or ../
-        elif [[ "$tool" =~ ^({known_tools_pattern})$ ]]; then
-            tool_type="known"  # From our predefined list
-        elif [[ "$tool_path" == "$HOME/"* ]]; then
-            tool_type="custom"  # User's custom scripts in PATH
+        # Categorize the tool if not already done
+        if [[ "$tool_type" == "other" ]]; then
+            # Check against known tool categories
+            case "$tool_to_track" in
+{category_case_block}
+                *)
+                    # Check if it's in user's home directory
+                    local tool_path=$(which "$tool_to_track" 2>/dev/null)
+                    if [[ "$tool_path" == "$HOME/"* ]]; then
+                        tool_type="custom"  # User's custom scripts in PATH
+                    fi
+                    ;;
+            esac
         fi
         
-        # Record tool usage
-        echo "${{current_dir}}|${{tool_to_track}}|${{tool_type}}|$(date +%s)" >> "$FREQ_DIRS_TOOLS"
+        # Record tool usage with optional alias info
+        echo "${{current_dir}}|${{tool_to_track}}|${{tool_type}}${{alias_info}}|$(date +%s)" >> "$FREQ_DIRS_TOOLS"
     fi
 }}
 
@@ -647,22 +686,52 @@ _freq_dirs_analyze_tools() {{
     printf "  \\033[93mTotal tool invocations: ${{total_uses}}\\033[0m\\n"
     echo ""
     
-    # Top 10 tools
+    # Top 10 tools (group git and its aliases together)
     printf "  \\033[36mTop 10 Tools:\\033[0m\\n"
-    awk -F'|' '{{print $2}}' "$temp_file" | sort | uniq -c | sort -rn | head -10 | while read count tool; do
+    
+    # Extract and count tools, merging git aliases
+    local tool_counts=$(mktemp)
+    while IFS='|' read -r dir tool info timestamp; do
+        # Check if this is a git alias
+        if [[ "$info" == *"|alias:"* ]]; then
+            # It's an alias, check if it's a git alias
+            local alias_part=$(echo "$info" | sed 's/.*|alias://')
+            if [[ "$tool" == "git" ]]; then
+                # Count as git with alias info
+                echo "git" >> "$tool_counts"
+            else
+                echo "$tool" >> "$tool_counts"
+            fi
+        else
+            echo "$tool" >> "$tool_counts"
+        fi
+    done < "$temp_file"
+    
+    sort "$tool_counts" | uniq -c | sort -rn | head -10 | while read count tool; do
         local percent=$((count * 100 / total_uses))
-        local tool_info=$(grep "|${{tool}}|" "$temp_file" | head -1 | awk -F'|' '{{print $3}}')
+        local tool_info=$(grep "|${{tool}}|" "$temp_file" | head -1 | awk -F'|' '{{print $3}}' | cut -d'|' -f1)
+        
+        # Check for git aliases used with this tool
+        local git_aliases=""
+        if [[ "$tool" == "git" ]]; then
+            git_aliases=$(grep "|git|" "$temp_file" | grep "|alias:" | sed 's/.*|alias://' | cut -d'=' -f1 | sort -u | tr '\\n' ',' | sed 's/,$//' | sed 's/,/, /g')
+            if [[ -n "$git_aliases" ]]; then
+                git_aliases=" (via $git_aliases)"
+            fi
+        fi
         
         # Color based on type
         local color="\\033[37m"  # Default white
         if [[ "$tool_info" == "custom" ]]; then
             color="\\033[95m"  # Magenta for custom
-        elif [[ "$tool_info" == "known" ]]; then
+        elif [[ "$tool_info" == "known" ]] || [[ "$tool_info" == "version_control" ]]; then
             color="\\033[96m"  # Cyan for known
         fi
         
-        printf "    ${{color}}%-15s\\033[0m %3d uses \\033[90m(%d%%)\\033[0m\\n" "$tool:" "$count" "$percent"
+        printf "    ${{color}}%-15s\\033[0m %3d uses \\033[90m(%d%%)${{git_aliases}}\\033[0m\\n" "${{tool}}:" "$count" "$percent"
     done
+    
+    rm -f "$tool_counts"
     
     # Add hint about --tools flag
     echo ""
@@ -829,139 +898,31 @@ _freq_dirs_analyze_git_commits() {
     
     [[ -z "$git_data" ]] && return
     
-    # Load category keywords
-    local revert_keywords="revert reverted"
-    local fix_keywords="fix fixed fixes bugfix bug error issue problem broken crash"
-    local feat_keywords="add added adds feature feat new implement create build"
-    local perf_keywords="improve improved improves optimization optimize performance fast speed"
-    local refactor_keywords="refactor refactors refactored restructure reorganize cleanup clean"
-    local test_keywords="test tests testing spec specs coverage unittest"
-    local build_keywords="build builds built compile compilation make cmake package"
-    local ci_keywords="ci cd pipeline deploy deployment github actions workflow"
-    local docs_keywords="doc docs readme documentation comment comments md markdown"
-    local style_keywords="style styles styling format formatting prettier lint linting"
-    local chore_keywords="chore maintenance update updates version merge merged"
-    
-    # Count commits by category
+    # Count commits by category using priority-based categorization
     local revert_count=0 fix_count=0 feat_count=0 perf_count=0 refactor_count=0
     local test_count=0 build_count=0 ci_count=0 docs_count=0 style_count=0 chore_count=0 other_count=0
     
     while IFS='|' read -r dir hash timestamp message; do
-        local msg=$(echo "$message" | tr '[:upper:]' '[:lower:]')
-        local categorized=false
+        [[ -z "$message" ]] && continue
+        local msg_lower=$(echo "$message" | tr '[:upper:]' '[:lower:]')
         
-        # Check each category (same logic as existing insights)
-        for keyword in $revert_keywords; do
-            if [[ "$msg" == *"$keyword"* ]]; then
-                revert_count=$((revert_count + 1))
-                categorized=true
-                break
-            fi
-        done
+        # Use the same categorization function as the main insights
+        local category=$(_freq_dirs_categorize_commit "$msg_lower")
         
-        if [[ "$categorized" != "true" ]]; then
-            for keyword in $fix_keywords; do
-                if [[ "$msg" == *"$keyword"* ]]; then
-                    fix_count=$((fix_count + 1))
-                    categorized=true
-                    break
-                fi
-            done
-        fi
-        
-        if [[ "$categorized" != "true" ]]; then
-            for keyword in $feat_keywords; do
-                if [[ "$msg" == *"$keyword"* ]]; then
-                    feat_count=$((feat_count + 1))
-                    categorized=true
-                    break
-                fi
-            done
-        fi
-        
-        if [[ "$categorized" != "true" ]]; then
-            for keyword in $perf_keywords; do
-                if [[ "$msg" == *"$keyword"* ]]; then
-                    perf_count=$((perf_count + 1))
-                    categorized=true
-                    break
-                fi
-            done
-        fi
-        
-        if [[ "$categorized" != "true" ]]; then
-            for keyword in $refactor_keywords; do
-                if [[ "$msg" == *"$keyword"* ]]; then
-                    refactor_count=$((refactor_count + 1))
-                    categorized=true
-                    break
-                fi
-            done
-        fi
-        
-        if [[ "$categorized" != "true" ]]; then
-            for keyword in $test_keywords; do
-                if [[ "$msg" == *"$keyword"* ]]; then
-                    test_count=$((test_count + 1))
-                    categorized=true
-                    break
-                fi
-            done
-        fi
-        
-        if [[ "$categorized" != "true" ]]; then
-            for keyword in $build_keywords; do
-                if [[ "$msg" == *"$keyword"* ]]; then
-                    build_count=$((build_count + 1))
-                    categorized=true
-                    break
-                fi
-            done
-        fi
-        
-        if [[ "$categorized" != "true" ]]; then
-            for keyword in $ci_keywords; do
-                if [[ "$msg" == *"$keyword"* ]]; then
-                    ci_count=$((ci_count + 1))
-                    categorized=true
-                    break
-                fi
-            done
-        fi
-        
-        if [[ "$categorized" != "true" ]]; then
-            for keyword in $docs_keywords; do
-                if [[ "$msg" == *"$keyword"* ]]; then
-                    docs_count=$((docs_count + 1))
-                    categorized=true
-                    break
-                fi
-            done
-        fi
-        
-        if [[ "$categorized" != "true" ]]; then
-            for keyword in $style_keywords; do
-                if [[ "$msg" == *"$keyword"* ]]; then
-                    style_count=$((style_count + 1))
-                    categorized=true
-                    break
-                fi
-            done
-        fi
-        
-        if [[ "$categorized" != "true" ]]; then
-            for keyword in $chore_keywords; do
-                if [[ "$msg" == *"$keyword"* ]]; then
-                    chore_count=$((chore_count + 1))
-                    categorized=true
-                    break
-                fi
-            done
-        fi
-        
-        if [[ "$categorized" != "true" ]]; then
-            other_count=$((other_count + 1))
-        fi
+        case "$category" in
+            revert) ((revert_count++)) ;;
+            fix) ((fix_count++)) ;;
+            feat) ((feat_count++)) ;;
+            perf) ((perf_count++)) ;;
+            refactor) ((refactor_count++)) ;;
+            test) ((test_count++)) ;;
+            build) ((build_count++)) ;;
+            ci) ((ci_count++)) ;;
+            docs) ((docs_count++)) ;;
+            style) ((style_count++)) ;;
+            chore) ((chore_count++)) ;;
+            *) ((other_count++)) ;;
+        esac
     done <<< "$git_data"
     
     local total_commits=$((revert_count + fix_count + feat_count + perf_count + refactor_count + test_count + build_count + ci_count + docs_count + style_count + chore_count + other_count))

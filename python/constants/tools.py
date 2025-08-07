@@ -69,8 +69,7 @@ TRACKED_TOOLS = {
     'testing': {
         'emoji': '🧪',
         'tools': [
-            'pytest', 'jest', 'mocha', 'rspec', 'phpunit',
-            'cargo test', 'go test', 'npm test', 'yarn test'
+            'pytest', 'jest', 'mocha', 'rspec', 'phpunit'
         ]
     }
 }

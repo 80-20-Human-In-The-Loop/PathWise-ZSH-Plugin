@@ -426,31 +426,113 @@ _freq_dirs_track_tool() {
     # Extract just the tool name (first word)
     local tool=$(echo "$full_cmd" | awk '{print $1}')
     
-    # Skip if empty or builtin
+    # Skip if empty
     [[ -z "$tool" ]] && return
     
-    # Skip PathWise's own commands to avoid noise in tool tracking
+    # Skip shell builtins and navigation commands
     case "$tool" in
-        wfreq|wj1|wj2|wj3|wj4|wj5|wj6|wj7|wj8|wj9|wj10)
+        cd|pushd|popd|dirs|pwd|source|.|alias|unalias|export|unset|builtin|command|type|which|eval|exec|exit|return)
             return
             ;;
     esac
     
-    # Check if it's an actual executable command
-    if command -v "$tool" >/dev/null 2>&1; then
-        local tool_path=$(which "$tool" 2>/dev/null)
-        local tool_type="other"
+    # Skip PathWise's own commands to avoid noise in tool tracking
+    case "$tool" in
+        wfreq|wj1|wj2|wj3|wj4|wj5|wj6|wj7|wj8|wj9|wj10|_freq_dirs_git_wrapper)
+            return
+            ;;
+    esac
+    
+    # Determine if it's a custom script (starts with ./ or ../)
+    local is_custom_script=false
+    local tool_to_track="$tool"
+    local tool_type="other"
+    local alias_info=""
+    
+    if [[ "$tool" == ./* ]] || [[ "$tool" == ../* ]]; then
+        is_custom_script=true
+        # Keep the ./ or ../ prefix for custom scripts
+        tool_to_track="$tool"
+        tool_type="custom"
+    else
+        # Check if it's an alias and resolve it
+        local type_output=$(type "$tool" 2>/dev/null | head -1)
+        if [[ "$type_output" == *"is an alias for"* ]]; then
+            # Extract the actual command from the alias
+            local real_cmd=$(echo "$type_output" | sed 's/.*is an alias for //' | sed "s/'//g")
+            # Get the first word of the real command (the actual tool)
+            local real_tool=$(echo "$real_cmd" | awk '{print $1}')
+            
+            # Special case: if git is aliased to our wrapper, treat it as git
+            if [[ "$tool" == "git" ]] && [[ "$real_tool" == "_freq_dirs_git_wrapper" ]]; then
+                tool_to_track="git"
+                tool_type="version_control"
+            # If it's a git alias, track as git
+            elif [[ "$real_tool" == "git" ]]; then
+                tool_to_track="git"
+                tool_type="version_control"
+                # Extract git subcommand if present
+                local git_subcmd=$(echo "$real_cmd" | awk '{print $2}')
+                if [[ -n "$git_subcmd" ]]; then
+                    alias_info="|alias:$tool=$git_subcmd"
+                else
+                    alias_info="|alias:$tool"
+                fi
+            else
+                # Use the resolved tool
+                tool_to_track="$real_tool"
+                alias_info="|alias:$tool"
+            fi
+        fi
+    fi
+    
+    # Check if it's an actual executable command or custom script
+    if [[ "$is_custom_script" == "true" ]] || command -v "$tool_to_track" >/dev/null 2>&1; then
         local current_dir="${PWD/#$HOME/~}"
         
-        # Categorize the tool
-        if [[ "$tool_path" == "$HOME/"* ]]; then
-            tool_type="custom"  # User's custom scripts
-        elif [[ "$tool" =~ ^(nano|vim|vi|nvim|neovim|emacs|code|subl|atom|gedit|kate|micro|helix|hx|kakoune|kak|git|svn|hg|fossil|bzr|make|cmake|ninja|bazel|gradle|maven|mvn|ant|scons|npm|yarn|pnpm|pip|pip3|poetry|cargo|go|gem|bundle|composer|apt|yum|brew|snap|flatpak|python|python3|node|deno|bun|ruby|perl|php|java|javac|gcc|g++|clang|rustc|go|cat|less|more|head|tail|grep|rg|ag|ack|find|fd|ls|tree|bat|eza|lsd|docker|podman|kubectl|k9s|helm|terraform|ansible|vagrant|systemctl|ps|top|htop|btop|netstat|ss|pytest|jest|mocha|rspec|phpunit|cargo test|go test|npm test|yarn test)$ ]]; then
-            tool_type="known"  # From our predefined list
+        # Categorize the tool if not already done
+        if [[ "$tool_type" == "other" ]]; then
+            # Check against known tool categories
+            case "$tool_to_track" in
+        claude|gemini|opencode|chatgpt|copilot|codeium|aider|cursor|cody|tabnine|gpt|ollama|sgpt|llm)
+            tool_type="ai_tools"
+            ;;
+        nano|vim|vi|nvim|neovim|emacs|code|subl|atom|gedit|kate|micro|helix|hx|kakoune|kak)
+            tool_type="editors"
+            ;;
+        git|svn|hg|fossil|bzr)
+            tool_type="version_control"
+            ;;
+        make|cmake|ninja|bazel|gradle|maven|mvn|ant|scons)
+            tool_type="build_tools"
+            ;;
+        npm|yarn|pnpm|pip|pip3|poetry|cargo|go|gem|bundle|composer|apt|yum|brew|snap|flatpak)
+            tool_type="package_managers"
+            ;;
+        python|python3|node|deno|bun|ruby|perl|php|java|javac|gcc|g++|clang|rustc|go)
+            tool_type="runners"
+            ;;
+        cat|less|more|head|tail|grep|rg|ag|ack|find|fd|ls|tree|bat|eza|lsd)
+            tool_type="file_tools"
+            ;;
+        docker|podman|kubectl|k9s|helm|terraform|ansible|vagrant|systemctl|ps|top|htop|btop|netstat|ss)
+            tool_type="system_tools"
+            ;;
+        pytest|jest|mocha|rspec|phpunit)
+            tool_type="testing"
+            ;;
+                *)
+                    # Check if it's in user's home directory
+                    local tool_path=$(which "$tool_to_track" 2>/dev/null)
+                    if [[ "$tool_path" == "$HOME/"* ]]; then
+                        tool_type="custom"  # User's custom scripts in PATH
+                    fi
+                    ;;
+            esac
         fi
         
-        # Record tool usage
-        echo "${current_dir}|${tool}|${tool_type}|$(date +%s)" >> "$FREQ_DIRS_TOOLS"
+        # Record tool usage with optional alias info
+        echo "${current_dir}|${tool_to_track}|${tool_type}${alias_info}|$(date +%s)" >> "$FREQ_DIRS_TOOLS"
     fi
 }
 
@@ -478,34 +560,74 @@ _freq_dirs_analyze_tools() {
     printf "  \033[93mTotal tool invocations: ${total_uses}\033[0m\n"
     echo ""
     
-    # Top 10 tools
+    # Top 10 tools (group git and its aliases together)
     printf "  \033[36mTop 10 Tools:\033[0m\n"
-    awk -F'|' '{print $2}' "$temp_file" | sort | uniq -c | sort -rn | head -10 | while read count tool; do
+    
+    # Extract and count tools, merging git aliases
+    local tool_counts=$(mktemp)
+    while IFS='|' read -r dir tool info timestamp; do
+        # Check if this is a git alias
+        if [[ "$info" == *"|alias:"* ]]; then
+            # It's an alias, check if it's a git alias
+            local alias_part=$(echo "$info" | sed 's/.*|alias://')
+            if [[ "$tool" == "git" ]]; then
+                # Count as git with alias info
+                echo "git" >> "$tool_counts"
+            else
+                echo "$tool" >> "$tool_counts"
+            fi
+        else
+            echo "$tool" >> "$tool_counts"
+        fi
+    done < "$temp_file"
+    
+    sort "$tool_counts" | uniq -c | sort -rn | head -10 | while read count tool; do
         local percent=$((count * 100 / total_uses))
-        local tool_info=$(grep "|${tool}|" "$temp_file" | head -1 | awk -F'|' '{print $3}')
+        local tool_info=$(grep "|${tool}|" "$temp_file" | head -1 | awk -F'|' '{print $3}' | cut -d'|' -f1)
+        
+        # Check for git aliases used with this tool
+        local git_aliases=""
+        if [[ "$tool" == "git" ]]; then
+            git_aliases=$(grep "|git|" "$temp_file" | grep "|alias:" | sed 's/.*|alias://' | cut -d'=' -f1 | sort -u | tr '\n' ',' | sed 's/,$//' | sed 's/,/, /g')
+            if [[ -n "$git_aliases" ]]; then
+                git_aliases=" (via $git_aliases)"
+            fi
+        fi
         
         # Color based on type
         local color="\033[37m"  # Default white
         if [[ "$tool_info" == "custom" ]]; then
             color="\033[95m"  # Magenta for custom
-        elif [[ "$tool_info" == "known" ]]; then
+        elif [[ "$tool_info" == "known" ]] || [[ "$tool_info" == "version_control" ]]; then
             color="\033[96m"  # Cyan for known
         fi
         
-        printf "    ${color}%-15s\033[0m %3d uses \033[90m(%d%%)\033[0m\n" "$tool:" "$count" "$percent"
+        printf "    ${color}%-15s\033[0m %3d uses \033[90m(%d%%)${git_aliases}\033[0m\n" "${tool}:" "$count" "$percent"
     done
+    
+    rm -f "$tool_counts"
     
     # Add hint about --tools flag
     echo ""
     printf "  \033[90m💡 Use 'wfreq --tools' to see tool usage across top directories\033[0m\n"
     
-    # Show custom scripts if any
+    # Show custom scripts and AI tools if any
     echo ""
-    local custom_tools=$(awk -F'|' '$3=="custom" {print $2}' "$temp_file" | sort -u)
-    if [[ -n "$custom_tools" ]]; then
+    local custom_scripts=$(awk -F'|' '$3=="custom" {print $2}' "$temp_file" | grep '^\.\/' | sort -u)
+    local ai_tools=$(grep -E "\|(claude|gemini|opencode|chatgpt|copilot|codeium|aider|cursor|cody|tabnine|gpt|ollama|sgpt|llm)\|" "$temp_file" | awk -F'|' '{print $2}' | sort -u)
+    
+    if [[ -n "$custom_scripts" ]]; then
         printf "  \033[35mCustom Scripts Used Here:\033[0m\n"
-        echo "    $custom_tools" | tr ' ' '\n' | head -5 | while read tool; do
-            [[ -n "$tool" ]] && printf "    🔧 %s\n" "$tool"
+        echo "$custom_scripts" | head -5 | while read tool; do
+            [[ -n "$tool" ]] && printf "    📜 %s\n" "$tool"
+        done
+        echo ""
+    fi
+    
+    if [[ -n "$ai_tools" ]]; then
+        printf "  \033[94mAI Assistants Used Here:\033[0m\n"
+        echo "$ai_tools" | head -5 | while read tool; do
+            [[ -n "$tool" ]] && printf "    🤖 %s\n" "$tool"
         done
     fi
     
@@ -556,10 +678,17 @@ _freq_dirs_analyze_tools_multi() {
                 # Determine category label
                 local category_label=""
                 if [[ "$tool_info" == "custom" ]]; then
-                    category_label="custom script"
+                    # Check if it's a script with ./ prefix
+                    if [[ "$tool" == ./* ]] || [[ "$tool" == ../* ]]; then
+                        category_label="custom script"
+                    else
+                        category_label="user tool"
+                    fi
                 elif [[ "$tool_info" == "known" ]]; then
                     # Map known tools to categories
                     case "$tool" in
+                        claude|gemini|opencode|chatgpt|copilot|codeium|aider|cursor|cody|tabnine|gpt|ollama|sgpt|llm)
+                            category_label="AI assistant" ;;
                         nano|vim|vi|nvim|neovim|emacs|code|subl)
                             category_label="editor" ;;
                         git|svn|hg)
@@ -1039,139 +1168,31 @@ _freq_dirs_analyze_git_commits() {
     
     [[ -z "$git_data" ]] && return
     
-    # Load category keywords
-    local revert_keywords="revert reverted"
-    local fix_keywords="fix fixed fixes bugfix bug error issue problem broken crash"
-    local feat_keywords="add added adds feature feat new implement create build"
-    local perf_keywords="improve improved improves optimization optimize performance fast speed"
-    local refactor_keywords="refactor refactors refactored restructure reorganize cleanup clean"
-    local test_keywords="test tests testing spec specs coverage unittest"
-    local build_keywords="build builds built compile compilation make cmake package"
-    local ci_keywords="ci cd pipeline deploy deployment github actions workflow"
-    local docs_keywords="doc docs readme documentation comment comments md markdown"
-    local style_keywords="style styles styling format formatting prettier lint linting"
-    local chore_keywords="chore maintenance update updates version merge merged"
-    
-    # Count commits by category
+    # Count commits by category using priority-based categorization
     local revert_count=0 fix_count=0 feat_count=0 perf_count=0 refactor_count=0
     local test_count=0 build_count=0 ci_count=0 docs_count=0 style_count=0 chore_count=0 other_count=0
     
     while IFS='|' read -r dir hash timestamp message; do
-        local msg=$(echo "$message" | tr '[:upper:]' '[:lower:]')
-        local categorized=false
+        [[ -z "$message" ]] && continue
+        local msg_lower=$(echo "$message" | tr '[:upper:]' '[:lower:]')
         
-        # Check each category (same logic as existing insights)
-        for keyword in $revert_keywords; do
-            if [[ "$msg" == *"$keyword"* ]]; then
-                revert_count=$((revert_count + 1))
-                categorized=true
-                break
-            fi
-        done
+        # Use the same categorization function as the main insights
+        local category=$(_freq_dirs_categorize_commit "$msg_lower")
         
-        if [[ "$categorized" != "true" ]]; then
-            for keyword in $fix_keywords; do
-                if [[ "$msg" == *"$keyword"* ]]; then
-                    fix_count=$((fix_count + 1))
-                    categorized=true
-                    break
-                fi
-            done
-        fi
-        
-        if [[ "$categorized" != "true" ]]; then
-            for keyword in $feat_keywords; do
-                if [[ "$msg" == *"$keyword"* ]]; then
-                    feat_count=$((feat_count + 1))
-                    categorized=true
-                    break
-                fi
-            done
-        fi
-        
-        if [[ "$categorized" != "true" ]]; then
-            for keyword in $perf_keywords; do
-                if [[ "$msg" == *"$keyword"* ]]; then
-                    perf_count=$((perf_count + 1))
-                    categorized=true
-                    break
-                fi
-            done
-        fi
-        
-        if [[ "$categorized" != "true" ]]; then
-            for keyword in $refactor_keywords; do
-                if [[ "$msg" == *"$keyword"* ]]; then
-                    refactor_count=$((refactor_count + 1))
-                    categorized=true
-                    break
-                fi
-            done
-        fi
-        
-        if [[ "$categorized" != "true" ]]; then
-            for keyword in $test_keywords; do
-                if [[ "$msg" == *"$keyword"* ]]; then
-                    test_count=$((test_count + 1))
-                    categorized=true
-                    break
-                fi
-            done
-        fi
-        
-        if [[ "$categorized" != "true" ]]; then
-            for keyword in $build_keywords; do
-                if [[ "$msg" == *"$keyword"* ]]; then
-                    build_count=$((build_count + 1))
-                    categorized=true
-                    break
-                fi
-            done
-        fi
-        
-        if [[ "$categorized" != "true" ]]; then
-            for keyword in $ci_keywords; do
-                if [[ "$msg" == *"$keyword"* ]]; then
-                    ci_count=$((ci_count + 1))
-                    categorized=true
-                    break
-                fi
-            done
-        fi
-        
-        if [[ "$categorized" != "true" ]]; then
-            for keyword in $docs_keywords; do
-                if [[ "$msg" == *"$keyword"* ]]; then
-                    docs_count=$((docs_count + 1))
-                    categorized=true
-                    break
-                fi
-            done
-        fi
-        
-        if [[ "$categorized" != "true" ]]; then
-            for keyword in $style_keywords; do
-                if [[ "$msg" == *"$keyword"* ]]; then
-                    style_count=$((style_count + 1))
-                    categorized=true
-                    break
-                fi
-            done
-        fi
-        
-        if [[ "$categorized" != "true" ]]; then
-            for keyword in $chore_keywords; do
-                if [[ "$msg" == *"$keyword"* ]]; then
-                    chore_count=$((chore_count + 1))
-                    categorized=true
-                    break
-                fi
-            done
-        fi
-        
-        if [[ "$categorized" != "true" ]]; then
-            other_count=$((other_count + 1))
-        fi
+        case "$category" in
+            revert) ((revert_count++)) ;;
+            fix) ((fix_count++)) ;;
+            feat) ((feat_count++)) ;;
+            perf) ((perf_count++)) ;;
+            refactor) ((refactor_count++)) ;;
+            test) ((test_count++)) ;;
+            build) ((build_count++)) ;;
+            ci) ((ci_count++)) ;;
+            docs) ((docs_count++)) ;;
+            style) ((style_count++)) ;;
+            chore) ((chore_count++)) ;;
+            *) ((other_count++)) ;;
+        esac
     done <<< "$git_data"
     
     local total_commits=$((revert_count + fix_count + feat_count + perf_count + refactor_count + test_count + build_count + ci_count + docs_count + style_count + chore_count + other_count))
@@ -1333,7 +1354,8 @@ _freq_dirs_get_merged_data() {
     if [[ -s "$FREQ_DIRS_YESTERDAY" ]]; then
         while IFS='|' read -r dir count time; do
             [[ -z "$time" ]] && time=0
-            if ! grep -q "^${dir}|" "$FREQ_DIRS_TODAY" 2>/dev/null; then
+            # Use faster method to check if directory already exists
+            if [[ ! -s "$FREQ_DIRS_TODAY" ]] || ! grep -qF "${dir}|" "$FREQ_DIRS_TODAY" 2>/dev/null; then
                 echo "${dir}|${count}|${time}|0|yesterday" >> "$merged_file"
             fi
         done < "$FREQ_DIRS_YESTERDAY"
@@ -1455,6 +1477,69 @@ PATHWISE_TIPS=(
     "advanced:Use 'zmodload' to load additional zsh modules for extra features"
     "advanced:Profile shell startup: 'zsh -x' to debug slow initialization"
     "advanced:Use 'compdef' to create custom completions for your functions"
+    "bash_strings:Trim leading/trailing spaces: '\${var##+([[:space:]])}' and '\${var%%+([[:space:]])}' - github.com/dylanaraps/pure-bash-bible#trim-leading-and-trailing-white-space"
+    "bash_strings:Get string length: '\${#var}' returns character count without wc - github.com/dylanaraps/pure-bash-bible#get-the-length-of-a-string"
+    "bash_strings:Split string on delimiter: 'IFS=: read -ra arr <<< \"\$PATH\"' creates array - github.com/dylanaraps/pure-bash-bible#split-a-string-on-a-delimiter"
+    "bash_strings:Lowercase string: '\${var,,}' converts to lowercase in Bash 4+ - github.com/dylanaraps/pure-bash-bible#change-a-string-to-lowercase"
+    "bash_strings:Uppercase string: '\${var^^}' converts to uppercase in Bash 4+ - github.com/dylanaraps/pure-bash-bible#change-a-string-to-uppercase"
+    "bash_strings:Reverse case: '\${var~~}' toggles case of all characters - github.com/dylanaraps/pure-bash-bible#reverse-a-strings-case"
+    "bash_strings:Remove spaces: '\${var// /}' deletes all spaces from string - github.com/dylanaraps/pure-bash-bible#trim-all-white-space-from-string-and-truncate-spaces"
+    "bash_strings:Check if string contains substring: '[[ \$var == *\"text\"* ]]' pattern match - github.com/dylanaraps/pure-bash-bible#check-if-string-contains-a-substring"
+    "bash_strings:Check string starts with: '[[ \$var == text* ]]' prefix pattern - github.com/dylanaraps/pure-bash-bible#check-if-string-starts-with-substring"
+    "bash_strings:Check string ends with: '[[ \$var == *text ]]' suffix pattern - github.com/dylanaraps/pure-bash-bible#check-if-string-ends-with-substring"
+    "bash_strings:Get first N chars: '\${var:0:10}' extracts first 10 characters - github.com/dylanaraps/pure-bash-bible#get-the-first-n-characters-of-a-string"
+    "bash_strings:Get last N chars: '\${var: -10}' extracts last 10 characters (note space) - github.com/dylanaraps/pure-bash-bible#get-the-last-n-characters-of-a-string"
+    "bash_strings:Get substring by offset: '\${var:10:5}' gets 5 chars starting at position 10 - github.com/dylanaraps/pure-bash-bible#get-substring-by-offset-and-length"
+    "bash_strings:Strip prefix: '\${var#prefix}' removes shortest prefix match - github.com/dylanaraps/pure-bash-bible#strip-prefix-from-string"
+    "bash_strings:Strip suffix: '\${var%suffix}' removes shortest suffix match - github.com/dylanaraps/pure-bash-bible#strip-suffix-from-string"
+    "bash_strings:Percent-encode string: Use printf '%s' \"\$var\" | od -An -tx1 | tr ' ' % - github.com/dylanaraps/pure-bash-bible#percent-encode-a-string"
+    "bash_strings:Regex match: '[[ \$var =~ ^[0-9]+\$ ]]' checks if string is all digits - github.com/dylanaraps/pure-bash-bible#check-if-string-matches-a-regex"
+    "bash_arrays:Reverse array: 'for ((i=\${#arr[@]}-1; i>=0; i--)); do rev+=(\"\${arr[i]}\"); done' - github.com/dylanaraps/pure-bash-bible#reverse-an-array"
+    "bash_arrays:Remove duplicates: Keep unique values with associative array as set - github.com/dylanaraps/pure-bash-bible#remove-duplicate-array-elements"
+    "bash_arrays:Random array element: '\${arr[RANDOM % \${#arr[@]}]}' picks random item - github.com/dylanaraps/pure-bash-bible#random-array-element"
+    "bash_arrays:Cycle through array: Use modulo '\${arr[i++ % \${#arr[@]}]}' for infinite loop - github.com/dylanaraps/pure-bash-bible#cycle-through-an-array"
+    "bash_arrays:Toggle between values: 'var=\$((1-var))' switches between 0 and 1 - github.com/dylanaraps/pure-bash-bible#toggle-between-two-values"
+    "bash_loops:Loop over range: 'for i in {1..10}; do ...; done' iterates 1 to 10 - github.com/dylanaraps/pure-bash-bible#loop-over-a-range-of-numbers"
+    "bash_loops:Variable range: 'for ((i=start; i<=end; i++)); do ...; done' with variables - github.com/dylanaraps/pure-bash-bible#loop-over-a-variable-range-of-numbers"
+    "bash_loops:Loop over array: 'for elem in \"\${arr[@]}\"; do ...; done' iterates elements - github.com/dylanaraps/pure-bash-bible#loop-over-an-array"
+    "bash_loops:Loop with index: 'for i in \"\${!arr[@]}\"; do echo \${arr[i]}; done' - github.com/dylanaraps/pure-bash-bible#loop-over-an-array-with-an-index"
+    "bash_loops:Loop file contents: 'while IFS= read -r line; do ...; done < file' - github.com/dylanaraps/pure-bash-bible#loop-over-files-contents"
+    "bash_loops:Loop over files: 'for f in *.txt; do [[ -e \$f ]] || continue; ...; done' - github.com/dylanaraps/pure-bash-bible#loop-over-files-and-directories"
+    "bash_file_handling:Read file to string: 'var=\$(<file)' faster than cat for variable assignment - github.com/dylanaraps/pure-bash-bible#read-a-file-to-a-string"
+    "bash_file_handling:Read file to array: 'readarray -t arr < file' or mapfile for line array - github.com/dylanaraps/pure-bash-bible#read-a-file-to-an-array-by-line"
+    "bash_file_handling:Get first line: 'IFS= read -r line < file' reads just first line - github.com/dylanaraps/pure-bash-bible#get-the-first-n-lines-of-a-file"
+    "bash_file_handling:Get last N lines: Store in array and print last elements for tail behavior - github.com/dylanaraps/pure-bash-bible#get-the-last-n-lines-of-a-file"
+    "bash_file_handling:Line count: 'while IFS= read -r _; do ((count++)); done < file' - github.com/dylanaraps/pure-bash-bible#count-files-or-directories-in-directory"
+    "bash_file_handling:Random line: Read to array then '\${arr[RANDOM % \${#arr[@]}]}' - github.com/dylanaraps/pure-bash-bible#get-a-random-line-from-a-file"
+    "bash_file_handling:Create temp file: 'tmp=\$(mktemp) || exit 1' with proper error handling - github.com/dylanaraps/pure-bash-bible#create-a-temporary-file"
+    "bash_file_handling:Extract path parts: '\${file##*/}' for basename, '\${file%/*}' for dirname - github.com/dylanaraps/pure-bash-bible#get-the-directory-name-of-a-file-path"
+    "bash_conditionals:File tests: '[[ -f \$file ]]' for regular file, '-d' for directory, '-e' exists - github.com/dylanaraps/pure-bash-bible#file-conditionals"
+    "bash_conditionals:String empty check: '[[ -z \$var ]]' tests if empty, '-n' for non-empty - github.com/dylanaraps/pure-bash-bible#string-conditionals"
+    "bash_conditionals:Ternary operator: 'result=\${var:+set}' expands to 'set' if var is non-empty - github.com/dylanaraps/pure-bash-bible#ternary-tests"
+    "bash_conditionals:Check if in array: Loop and test each element or use associative array - github.com/dylanaraps/pure-bash-bible#check-if-a-string-is-in-an-array"
+    "bash_variables:Name reference: 'declare -n ref=var' creates reference to another variable - github.com/dylanaraps/pure-bash-bible#assign-and-access-a-variable-using-a-variable"
+    "bash_variables:Default value: '\${var:-default}' uses default if var is unset or empty - github.com/dylanaraps/pure-bash-bible#default-value-for-variable"
+    "bash_arithmetic:Math operations: '((result = 5 + 3 * 2))' evaluates arithmetic expressions - github.com/dylanaraps/pure-bash-bible#simpler-syntax-to-set-variables"
+    "bash_arithmetic:Sequence generation: 'for i in {1..100}; do ...; done' without seq command - github.com/dylanaraps/pure-bash-bible#use-seq-alternative"
+    "bash_traps:Cleanup on exit: 'trap cleanup EXIT' runs cleanup function on script exit - github.com/dylanaraps/pure-bash-bible#do-something-on-script-exit"
+    "bash_traps:Ignore Ctrl+C: 'trap '' INT' ignores interrupt signal (SIGINT) - github.com/dylanaraps/pure-bash-bible#ignore-terminal-interrupts-ctrl-c-sigint"
+    "bash_traps:React to signals: 'trap \"echo Caught\" INT TERM' handles multiple signals - github.com/dylanaraps/pure-bash-bible#react-to-signals"
+    "bash_traps:Run in background: 'command &' runs async, 'wait' to synchronize - github.com/dylanaraps/pure-bash-bible#run-a-command-in-the-background"
+    "bash_traps:Timeout command: Use timeout with trap for time-limited execution - github.com/dylanaraps/pure-bash-bible#run-a-command-for-a-specific-time"
+    "bash_terminal:Get terminal size: 'read -r LINES COLUMNS < <(stty size)' without tput - github.com/dylanaraps/pure-bash-bible#get-the-terminal-size-in-lines-and-columns"
+    "bash_terminal:Move cursor: 'printf '\e[5;10H'' moves to line 5, column 10 - github.com/dylanaraps/pure-bash-bible#move-the-cursor"
+    "bash_terminal:Clear screen: 'printf '\e[2J\e[H'' clears and homes cursor - github.com/dylanaraps/pure-bash-bible#clear-the-screen"
+    "bash_internals:Get function name: '\${FUNCNAME[0]}' returns current function name - github.com/dylanaraps/pure-bash-bible#get-the-current-function-name"
+    "bash_internals:Get hostname: '\${HOSTNAME:-\$(hostname)}' without external command - github.com/dylanaraps/pure-bash-bible#get-the-hostname"
+    "bash_internals:Brace expansion: '{1..10}' expands to '1 2 3 4 5 6 7 8 9 10' - github.com/dylanaraps/pure-bash-bible#brace-expansion"
+    "bash_internals:Check command type: 'type -t cmd' returns alias/function/builtin/file - github.com/dylanaraps/pure-bash-bible#check-what-type-of-command"
+    "bash_other:UUID generation: Read from /proc/sys/kernel/random/uuid if available - github.com/dylanaraps/pure-bash-bible#generate-a-uuid"
+    "bash_other:Progress bar: Use printf with carriage return '\r' to update same line - github.com/dylanaraps/pure-bash-bible#simple-progress-bar"
+    "bash_other:Get epoch: 'printf '%(%s)T' -1' in Bash 4.2+ instead of date +%s - github.com/dylanaraps/pure-bash-bible#get-the-current-date-and-time"
+    "bash_other:Format date: 'printf '%(%Y-%m-%d)T' -1' formats without date command - github.com/dylanaraps/pure-bash-bible#format-the-current-date-and-time"
+    "bash_other:Hex to RGB: Use printf '%d' 0x\${hex:0:2} to convert hex color values - github.com/dylanaraps/pure-bash-bible#convert-hex-color-to-rgb"
+    "bash_other:RGB to hex: 'printf '#%02x%02x%02x' \$r \$g \$b' converts RGB to hex - github.com/dylanaraps/pure-bash-bible#convert-rgb-color-to-hex"
+    "bash_other:Pseudo-random: '\$((RANDOM % 100))' gives 0-99, seed with RANDOM=seed - github.com/dylanaraps/pure-bash-bible#generate-a-pseudo-random-number"
 )
 
 
@@ -1491,21 +1576,37 @@ wfreq() {
     # Parse arguments
     case "$1" in
         --reset|-r)
+            # Check if stdin is available (terminal is interactive)
+            if [[ ! -t 0 ]]; then
+                echo "❌ Reset requires interactive terminal. Run 'wfreq --reset' manually."
+                return 1
+            fi
+            
             echo -n "Reset all frequency data? (y/N): "
-            read response
+            read -t 10 response || response="n"
             if [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]; then
+                # Always clear basic navigation data
                 > "$FREQ_DIRS_TODAY"
                 > "$FREQ_DIRS_YESTERDAY"
                 > "$FREQ_DIRS_SESSIONS"
-                > "$FREQ_DIRS_INSIGHTS"
-                > "$FREQ_DIRS_PATTERNS"
-                > "$FREQ_DIRS_GIT"
-                > "$FREQ_DIRS_GIT_TODAY"
                 date +%Y-%m-%d > "$FREQ_DIRS_LAST_RESET"
                 FREQ_CURRENT_DIR=""
                 FREQ_ENTER_TIME=""
                 FREQ_SESSION_START=""
-                echo "✅ Frequency data reset."
+                
+                # Ask about insights and tracking data
+                echo -n "Also clear insights and tool tracking? (y/N): "
+                read -t 10 insights_response || insights_response="n"
+                if [[ "$insights_response" == "y" ]] || [[ "$insights_response" == "Y" ]]; then
+                    > "$FREQ_DIRS_INSIGHTS"
+                    > "$FREQ_DIRS_PATTERNS"
+                    > "$FREQ_DIRS_GIT"
+                    > "$FREQ_DIRS_GIT_TODAY"
+                    > "$FREQ_DIRS_TOOLS"
+                    echo "✅ All frequency and insights data reset."
+                else
+                    echo "✅ Frequency data reset (insights preserved)."
+                fi
             else
                 echo "Cancelled."
             fi
@@ -1529,6 +1630,12 @@ wfreq() {
             return
             ;;
         --config|-c)
+            # Check if stdin is available (terminal is interactive)
+            if [[ ! -t 0 ]]; then
+                echo "❌ Configuration requires interactive terminal. Run 'wfreq --config' manually."
+                return 1
+            fi
+            
             echo ""
             printf "\033[36m⚙️  PathWise Configuration\033[0m\n"
             printf "\033[90m────────────────────────────────────\033[0m\n"
@@ -1573,7 +1680,7 @@ wfreq() {
             printf "\033[96m  Enable auto-reset?\033[0m (y/n) \033[90m[${FREQ_AUTO_RESET}]\033[0m\n"
             printf "  \033[90m→ Options: y=enable daily reset, n=keep data forever, Enter=no change\033[0m\n"
             printf "  \033[96m>\033[0m "
-            read response
+            read -t 10 response || response=""
             if [[ -n "$response" ]]; then
                 if [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]; then
                     FREQ_AUTO_RESET="true"
@@ -1587,7 +1694,7 @@ wfreq() {
                 printf "\033[96m  Reset hour\033[0m (0-23) \033[90m[${FREQ_RESET_HOUR}]\033[0m\n"
                 printf "  \033[90m→ Options: 0=midnight, 12=noon, 23=11pm, Enter=no change\033[0m\n"
                 printf "  \033[96m>\033[0m "
-                read response
+                read -t 10 response || response=""
                 if [[ -n "$response" ]] && [[ "$response" =~ ^[0-9]+$ ]] && [[ "$response" -ge 0 ]] && [[ "$response" -le 23 ]]; then
                     FREQ_RESET_HOUR="$response"
                 fi
@@ -1606,7 +1713,7 @@ wfreq() {
             printf "\033[96m  Enable time tracking?\033[0m (y/n) \033[90m[${FREQ_TRACK_TIME}]\033[0m\n"
             printf "  \033[90m→ Options: y=track time spent, n=only track visits, Enter=no change\033[0m\n"
             printf "  \033[96m>\033[0m "
-            read response
+            read -t 10 response || response=""
             if [[ -n "$response" ]]; then
                 if [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]; then
                     FREQ_TRACK_TIME="true"
@@ -1620,7 +1727,7 @@ wfreq() {
                 printf "\033[96m  Minimum time to track\033[0m (seconds) \033[90m[${FREQ_MIN_TIME}]\033[0m\n"
                 printf "  \033[90m→ Options: 0=track all, 5=default, 60=only 1min+, Enter=no change\033[0m\n"
                 printf "  \033[96m>\033[0m "
-                read response
+                read -t 10 response || response=""
                 if [[ -n "$response" ]] && [[ "$response" =~ ^[0-9]+$ ]]; then
                     FREQ_MIN_TIME="$response"
                 fi
@@ -1630,7 +1737,7 @@ wfreq() {
             printf "\033[96m  Enable git tracking?\033[0m (y/n) \033[90m[${FREQ_TRACK_GIT}]\033[0m\n"
             printf "  \033[90m→ Options: y=track git commits, n=disable git features, Enter=no change\033[0m\n"
             printf "  \033[96m>\033[0m "
-            read response
+            read -t 10 response || response=""
             if [[ -n "$response" ]]; then
                 if [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]; then
                     FREQ_TRACK_GIT="true"
@@ -1643,7 +1750,7 @@ wfreq() {
             printf "\033[96m  Enable tool tracking?\033[0m (y/n) \033[90m[${FREQ_TRACK_TOOLS}]\033[0m\n"
             printf "  \033[90m→ Options: y=track tool usage, n=disable tool tracking, Enter=no change\033[0m\n"
             printf "  \033[96m>\033[0m "
-            read response
+            read -t 10 response || response=""
             if [[ -n "$response" ]]; then
                 if [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]; then
                     FREQ_TRACK_TOOLS="true"
@@ -1794,6 +1901,9 @@ wfreq() {
 
 # Setup jump aliases on shell startup
 _freq_dirs_setup_aliases() {
+    # Only setup aliases in interactive shells to prevent blocking
+    [[ ! -o interactive ]] && return
+    
     _freq_dirs_load_config
     _freq_dirs_check_rotation
     
@@ -1804,10 +1914,12 @@ _freq_dirs_setup_aliases() {
     fi
     
     # Create aliases for top directories
+    # Process data without subshell to maintain variable state
     local i=1
     while IFS='|' read -r dir count time git_count period; do
         eval "alias wj${i}='cd \"${dir/#\~/$HOME}\"'"
         i=$((i + 1))
+        [[ $i -gt 10 ]] && break  # Safety limit
     done <<< "$merged_data"
 }
 

@@ -116,6 +116,102 @@ TIPS = {
         "Use 'zmodload' to load additional zsh modules for extra features",
         "Profile shell startup: 'zsh -x' to debug slow initialization",
         "Use 'compdef' to create custom completions for your functions",
+    ],
+    
+    "bash_strings": [
+        "Trim leading/trailing spaces: '${var##+([[:space:]])}' and '${var%%+([[:space:]])}' - github.com/dylanaraps/pure-bash-bible#trim-leading-and-trailing-white-space",
+        "Get string length: '${#var}' returns character count without wc - github.com/dylanaraps/pure-bash-bible#get-the-length-of-a-string",
+        "Split string on delimiter: 'IFS=: read -ra arr <<< \"$PATH\"' creates array - github.com/dylanaraps/pure-bash-bible#split-a-string-on-a-delimiter",
+        "Lowercase string: '${var,,}' converts to lowercase in Bash 4+ - github.com/dylanaraps/pure-bash-bible#change-a-string-to-lowercase",
+        "Uppercase string: '${var^^}' converts to uppercase in Bash 4+ - github.com/dylanaraps/pure-bash-bible#change-a-string-to-uppercase",
+        "Reverse case: '${var~~}' toggles case of all characters - github.com/dylanaraps/pure-bash-bible#reverse-a-strings-case",
+        "Remove spaces: '${var// /}' deletes all spaces from string - github.com/dylanaraps/pure-bash-bible#trim-all-white-space-from-string-and-truncate-spaces",
+        "Check if string contains substring: '[[ $var == *\"text\"* ]]' pattern match - github.com/dylanaraps/pure-bash-bible#check-if-string-contains-a-substring",
+        "Check string starts with: '[[ $var == text* ]]' prefix pattern - github.com/dylanaraps/pure-bash-bible#check-if-string-starts-with-substring",
+        "Check string ends with: '[[ $var == *text ]]' suffix pattern - github.com/dylanaraps/pure-bash-bible#check-if-string-ends-with-substring",
+        "Get first N chars: '${var:0:10}' extracts first 10 characters - github.com/dylanaraps/pure-bash-bible#get-the-first-n-characters-of-a-string",
+        "Get last N chars: '${var: -10}' extracts last 10 characters (note space) - github.com/dylanaraps/pure-bash-bible#get-the-last-n-characters-of-a-string",
+        "Get substring by offset: '${var:10:5}' gets 5 chars starting at position 10 - github.com/dylanaraps/pure-bash-bible#get-substring-by-offset-and-length",
+        "Strip prefix: '${var#prefix}' removes shortest prefix match - github.com/dylanaraps/pure-bash-bible#strip-prefix-from-string",
+        "Strip suffix: '${var%suffix}' removes shortest suffix match - github.com/dylanaraps/pure-bash-bible#strip-suffix-from-string",
+        "Percent-encode string: Use printf '%s' \"$var\" | od -An -tx1 | tr ' ' % - github.com/dylanaraps/pure-bash-bible#percent-encode-a-string",
+        "Regex match: '[[ $var =~ ^[0-9]+$ ]]' checks if string is all digits - github.com/dylanaraps/pure-bash-bible#check-if-string-matches-a-regex",
+    ],
+    
+    "bash_arrays": [
+        "Reverse array: 'for ((i=${#arr[@]}-1; i>=0; i--)); do rev+=(\"${arr[i]}\"); done' - github.com/dylanaraps/pure-bash-bible#reverse-an-array",
+        "Remove duplicates: Keep unique values with associative array as set - github.com/dylanaraps/pure-bash-bible#remove-duplicate-array-elements",
+        "Random array element: '${arr[RANDOM % ${#arr[@]}]}' picks random item - github.com/dylanaraps/pure-bash-bible#random-array-element",
+        "Cycle through array: Use modulo '${arr[i++ % ${#arr[@]}]}' for infinite loop - github.com/dylanaraps/pure-bash-bible#cycle-through-an-array",
+        "Toggle between values: 'var=$((1-var))' switches between 0 and 1 - github.com/dylanaraps/pure-bash-bible#toggle-between-two-values",
+    ],
+    
+    "bash_loops": [
+        "Loop over range: 'for i in {1..10}; do ...; done' iterates 1 to 10 - github.com/dylanaraps/pure-bash-bible#loop-over-a-range-of-numbers",
+        "Variable range: 'for ((i=start; i<=end; i++)); do ...; done' with variables - github.com/dylanaraps/pure-bash-bible#loop-over-a-variable-range-of-numbers",
+        "Loop over array: 'for elem in \"${arr[@]}\"; do ...; done' iterates elements - github.com/dylanaraps/pure-bash-bible#loop-over-an-array",
+        "Loop with index: 'for i in \"${!arr[@]}\"; do echo ${arr[i]}; done' - github.com/dylanaraps/pure-bash-bible#loop-over-an-array-with-an-index",
+        "Loop file contents: 'while IFS= read -r line; do ...; done < file' - github.com/dylanaraps/pure-bash-bible#loop-over-files-contents",
+        "Loop over files: 'for f in *.txt; do [[ -e $f ]] || continue; ...; done' - github.com/dylanaraps/pure-bash-bible#loop-over-files-and-directories",
+    ],
+    
+    "bash_file_handling": [
+        "Read file to string: 'var=$(<file)' faster than cat for variable assignment - github.com/dylanaraps/pure-bash-bible#read-a-file-to-a-string",
+        "Read file to array: 'readarray -t arr < file' or mapfile for line array - github.com/dylanaraps/pure-bash-bible#read-a-file-to-an-array-by-line",
+        "Get first line: 'IFS= read -r line < file' reads just first line - github.com/dylanaraps/pure-bash-bible#get-the-first-n-lines-of-a-file",
+        "Get last N lines: Store in array and print last elements for tail behavior - github.com/dylanaraps/pure-bash-bible#get-the-last-n-lines-of-a-file",
+        "Line count: 'while IFS= read -r _; do ((count++)); done < file' - github.com/dylanaraps/pure-bash-bible#count-files-or-directories-in-directory",
+        "Random line: Read to array then '${arr[RANDOM % ${#arr[@]}]}' - github.com/dylanaraps/pure-bash-bible#get-a-random-line-from-a-file",
+        "Create temp file: 'tmp=$(mktemp) || exit 1' with proper error handling - github.com/dylanaraps/pure-bash-bible#create-a-temporary-file",
+        "Extract path parts: '${file##*/}' for basename, '${file%/*}' for dirname - github.com/dylanaraps/pure-bash-bible#get-the-directory-name-of-a-file-path",
+    ],
+    
+    "bash_conditionals": [
+        "File tests: '[[ -f $file ]]' for regular file, '-d' for directory, '-e' exists - github.com/dylanaraps/pure-bash-bible#file-conditionals",
+        "String empty check: '[[ -z $var ]]' tests if empty, '-n' for non-empty - github.com/dylanaraps/pure-bash-bible#string-conditionals",
+        "Ternary operator: 'result=${var:+set}' expands to 'set' if var is non-empty - github.com/dylanaraps/pure-bash-bible#ternary-tests",
+        "Check if in array: Loop and test each element or use associative array - github.com/dylanaraps/pure-bash-bible#check-if-a-string-is-in-an-array",
+    ],
+    
+    "bash_variables": [
+        "Name reference: 'declare -n ref=var' creates reference to another variable - github.com/dylanaraps/pure-bash-bible#assign-and-access-a-variable-using-a-variable",
+        "Default value: '${var:-default}' uses default if var is unset or empty - github.com/dylanaraps/pure-bash-bible#default-value-for-variable",
+    ],
+    
+    "bash_arithmetic": [
+        "Math operations: '((result = 5 + 3 * 2))' evaluates arithmetic expressions - github.com/dylanaraps/pure-bash-bible#simpler-syntax-to-set-variables",
+        "Sequence generation: 'for i in {1..100}; do ...; done' without seq command - github.com/dylanaraps/pure-bash-bible#use-seq-alternative",
+    ],
+    
+    "bash_traps": [
+        "Cleanup on exit: 'trap cleanup EXIT' runs cleanup function on script exit - github.com/dylanaraps/pure-bash-bible#do-something-on-script-exit",
+        "Ignore Ctrl+C: 'trap '' INT' ignores interrupt signal (SIGINT) - github.com/dylanaraps/pure-bash-bible#ignore-terminal-interrupts-ctrl-c-sigint",
+        "React to signals: 'trap \"echo Caught\" INT TERM' handles multiple signals - github.com/dylanaraps/pure-bash-bible#react-to-signals",
+        "Run in background: 'command &' runs async, 'wait' to synchronize - github.com/dylanaraps/pure-bash-bible#run-a-command-in-the-background",
+        "Timeout command: Use timeout with trap for time-limited execution - github.com/dylanaraps/pure-bash-bible#run-a-command-for-a-specific-time",
+    ],
+    
+    "bash_terminal": [
+        "Get terminal size: 'read -r LINES COLUMNS < <(stty size)' without tput - github.com/dylanaraps/pure-bash-bible#get-the-terminal-size-in-lines-and-columns",
+        "Move cursor: 'printf '\\e[5;10H'' moves to line 5, column 10 - github.com/dylanaraps/pure-bash-bible#move-the-cursor",
+        "Clear screen: 'printf '\\e[2J\\e[H'' clears and homes cursor - github.com/dylanaraps/pure-bash-bible#clear-the-screen",
+    ],
+    
+    "bash_internals": [
+        "Get function name: '${FUNCNAME[0]}' returns current function name - github.com/dylanaraps/pure-bash-bible#get-the-current-function-name",
+        "Get hostname: '${HOSTNAME:-$(hostname)}' without external command - github.com/dylanaraps/pure-bash-bible#get-the-hostname",
+        "Brace expansion: '{1..10}' expands to '1 2 3 4 5 6 7 8 9 10' - github.com/dylanaraps/pure-bash-bible#brace-expansion",
+        "Check command type: 'type -t cmd' returns alias/function/builtin/file - github.com/dylanaraps/pure-bash-bible#check-what-type-of-command",
+    ],
+    
+    "bash_other": [
+        "UUID generation: Read from /proc/sys/kernel/random/uuid if available - github.com/dylanaraps/pure-bash-bible#generate-a-uuid",
+        "Progress bar: Use printf with carriage return '\\r' to update same line - github.com/dylanaraps/pure-bash-bible#simple-progress-bar",
+        "Get epoch: 'printf '%(%s)T' -1' in Bash 4.2+ instead of date +%s - github.com/dylanaraps/pure-bash-bible#get-the-current-date-and-time",
+        "Format date: 'printf '%(%Y-%m-%d)T' -1' formats without date command - github.com/dylanaraps/pure-bash-bible#format-the-current-date-and-time",
+        "Hex to RGB: Use printf '%d' 0x${hex:0:2} to convert hex color values - github.com/dylanaraps/pure-bash-bible#convert-hex-color-to-rgb",
+        "RGB to hex: 'printf '#%02x%02x%02x' $r $g $b' converts RGB to hex - github.com/dylanaraps/pure-bash-bible#convert-rgb-color-to-hex",
+        "Pseudo-random: '$((RANDOM % 100))' gives 0-99, seed with RANDOM=seed - github.com/dylanaraps/pure-bash-bible#generate-a-pseudo-random-number",
     ]
 }
 
