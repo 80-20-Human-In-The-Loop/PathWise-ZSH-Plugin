@@ -57,10 +57,17 @@ fi
 # Clone repository
 echo -e "${BLUE}→${NC} Installing PathWise..."
 if command -v git &> /dev/null; then
-    git clone https://github.com/yourusername/pathwise.git "$PLUGIN_DIR" 2>/dev/null || {
+    git clone https://github.com/80-20-Human-In-The-Loop/PathWise-ZSH-Plugin.git "$PLUGIN_DIR" 2>/dev/null || {
         # If GitHub repo doesn't exist yet, copy local files
-        if [ -d "$(dirname "$0")" ]; then
-            cp -r "$(dirname "$0")" "$PLUGIN_DIR"
+        SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+        if [ -d "$SCRIPT_DIR" ]; then
+            mkdir -p "$PLUGIN_DIR"
+            # Copy only the necessary plugin files
+            cp "$SCRIPT_DIR/pathwise.plugin.zsh" "$PLUGIN_DIR/" 2>/dev/null
+            [ -f "$SCRIPT_DIR/README.md" ] && cp "$SCRIPT_DIR/README.md" "$PLUGIN_DIR/"
+            [ -f "$SCRIPT_DIR/LICENSE" ] && cp "$SCRIPT_DIR/LICENSE" "$PLUGIN_DIR/"
+            [ -f "$SCRIPT_DIR/install.sh" ] && cp "$SCRIPT_DIR/install.sh" "$PLUGIN_DIR/"
+            [ -f "$SCRIPT_DIR/uninstall.sh" ] && cp "$SCRIPT_DIR/uninstall.sh" "$PLUGIN_DIR/"
             echo -e "${GREEN}✓${NC} Installed from local files"
         else
             echo -e "${RED}Error: Could not install PathWise${NC}"

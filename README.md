@@ -8,14 +8,17 @@ PathWise is a Zsh plugin that tracks your navigation patterns, helps you jump to
 
 ### Core Features
 - **📍 Smart Tracking** - Automatically tracks your most visited directories
+- **⏱️ Time Tracking** - Measures time spent in each directory for productivity insights
 - **⚡ Quick Jump** - Use `j1` through `j5` to instantly jump to your top directories  
 - **📊 Daily Rotation** - Intelligent daily reset with yesterday's data as fallback
 - **🎯 Pattern Recognition** - Learns your navigation habits over time
+- **📈 Productivity Insights** - Analyze your workflow with detailed analytics
 
 ### Commands
-- `freq` - Display your most frequently visited directories
+- `freq` - Display your most frequently visited directories with time spent
+- `freq --insights` - Show productivity analytics and navigation patterns
 - `freq --reset` - Clear all navigation data
-- `freq --config` - Configure auto-reset, display count, and more
+- `freq --config` - Configure auto-reset, display count, time tracking, and more
 - `freq --help` - Show available commands
 
 ### Jump Shortcuts
@@ -83,13 +86,44 @@ Output:
 ```
 📍 Your frequent directories:
 
-  [j1] ~/projects/my-app        (15 visits today)
-  [j2] ~/Documents              (8 visits today)
-  [j3] ~/Downloads              (5 visits today)
-  [j4] ~/.config                (12 visits yesterday) 📅
-  [j5] ~/projects               (10 visits yesterday) 📅
+  [j1] ~/projects/my-app        (15 visits · 2h 34m today)
+  [j2] ~/Documents              (8 visits · 45m 12s today)
+  [j3] ~/Downloads              (5 visits · 12m 5s today)
+  [j4] ~/.config                (12 visits · 1h 20m yesterday)
+  [j5] ~/projects               (10 visits · 58m 30s yesterday)
 
-💡 Commands: freq | freq --reset | freq --config
+💡 Commands: freq | freq --insights | freq --reset | freq --config
+```
+
+### Productivity Insights
+
+Get detailed analytics about your navigation patterns:
+
+```bash
+freq --insights
+```
+
+Output:
+```
+📊 Today's Activity Summary
+────────────────────────────
+Total directories visited: 12
+Total navigation events: 47
+Total tracked time: 4h 23m
+
+⏱️  Time Distribution:
+  ~/projects/my-app              2h 34m (58%)
+  ~/Documents                    45m 12s (17%)
+  ~/Downloads                    12m 5s (5%)
+
+📈 Session Patterns:
+  Peak activity hour: 14:00
+  Average time per directory: 12m 45s
+
+🔄 Common Navigation Patterns:
+  ~/projects → ~/projects/my-app (8x)
+  ~/Downloads → ~/Documents (5x)
+  ~/projects/my-app → ~/.config (3x)
 ```
 
 ### Configuration
@@ -104,6 +138,8 @@ Options:
 - **Auto-reset**: Daily rotation at midnight (default: enabled)
 - **Reset hour**: When to rotate data (default: 0/midnight)
 - **Show count**: Number of directories to display (default: 5)
+- **Track time**: Enable time tracking (default: enabled)
+- **Min time**: Minimum seconds in directory to track (default: 5)
 
 ### Startup Display
 
@@ -122,12 +158,6 @@ This approach ensures you become more efficient while understanding your pattern
 ## 🔮 Upcoming Features
 
 Aligned with our 80-20 philosophy, these features are planned:
-
-### 📊 Analytics Mode (`freq --analytics`)
-- Peak navigation hours
-- Directory depth analysis  
-- Workflow efficiency scoring
-- Pattern detection (thrashing, deep diving, etc.)
 
 ### 📚 Educational Mode (`freq --edu`)
 - Learn why certain directories matter
