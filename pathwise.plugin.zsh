@@ -657,6 +657,46 @@ _freq_dirs_get_merged_data() {
     rm -f "$merged_file"
 }
 
+PATHWISE_TIPS=(
+    "Use 'git blame <file>' to see who changed each line and when"
+    "Use 'cd **/<tab>' to fuzzy search for directories recursively"
+    "Sort by 'time' to see where you spend most time, or 'visits' for frequency"
+    "Set CDPATH to add common base directories for quick navigation"
+    "Set up git aliases: 'git config --global alias.co checkout'"
+    "Use 'git log --oneline --graph' for a visual commit history"
+    "Use 'git reset HEAD~1' to undo the last commit (keeping changes)"
+    "Use 'fc' to edit and re-run the last command in your editor"
+    "Use 'chmod +x file' to make a file executable quickly"
+    "Create here-documents: 'cat << EOF > file.txt'"
+    "Use 'grep -r \"pattern\" .' to search recursively in current directory"
+    "Use parameter expansion: \${var:-default} for default values"
+    "Your jump shortcuts update dynamically as your habits change throughout the day"
+    "The 'tree' command shows directory structure visually (install if needed)"
+    "Use virtual environments for Python projects to avoid conflicts"
+    "Use 'ps aux | grep <name>' to find processes, 'kill -9 <pid>' to force stop"
+    "Press Ctrl+R to search through your command history interactively"
+    "Configure minimum time to avoid tracking quick directory traversals"
+    "Create permanent aliases in ~/.zshrc for your common commands"
+    "The 'tee' command shows output and saves it: 'ls | tee output.txt'"
+    "Keep a 'notes.md' file in project roots for quick thoughts"
+    "Automate repetitive tasks with shell scripts or aliases"
+    "PathWise tracks both visits and time - giving you complete navigation insights"
+    "Press Alt+. to insert the last argument from previous command"
+    "Use 'tail -f logfile' to watch a log file in real-time"
+    "Create multiple directories at once: 'mkdir -p parent/child/grandchild'"
+    "Keep your home directory clean - use subdirectories for organization"
+    "Check 'freq --insights' weekly to understand your productivity patterns"
+    "Use 'find . -name \"*.txt\" -mtime -7' to find files modified in last 7 days"
+    "Set up zsh hooks: add_zsh_hook for preexec, precmd, chpwd"
+)
+
+
+# Function to get a random tip
+_freq_dirs_get_random_tip() {
+    local num_tips=${#PATHWISE_TIPS[@]}
+    local random_index=$((RANDOM % num_tips))
+    echo "${PATHWISE_TIPS[$random_index]}"
+}
 # Main freq function with argument parsing
 freq() {
     _freq_dirs_load_config
@@ -841,7 +881,7 @@ freq() {
     fi
     
     echo ""
-    echo "📍 Your frequent directories:"
+    echo "PathWise Directory Frequency:"
     echo ""
     
     # Display and create aliases
@@ -862,13 +902,17 @@ freq() {
             git_display=" [$git_count commits]"
         fi
         
+        # Two-line format for better readability
+        printf "  [36m[j%d][0m %s
+" "$i" "$display_dir"
+        
         if [[ "$period" == "yesterday" ]]; then
             if [[ -n "$git_display" ]]; then
-                printf "  [36m[j%d][0m %-35s [90m(%d visits%s yesterday)[0m [93m%s[0m
-"                     "$i" "$display_dir" "$count" "$time_display" "$git_display"
+                printf "      ├─ [90m%d visits%s yesterday[0m [93m%s[0m
+"                     "$count" "$time_display" "$git_display"
             else
-                printf "  [36m[j%d][0m %-35s [90m(%d visits%s yesterday)[0m
-"                     "$i" "$display_dir" "$count" "$time_display"
+                printf "      ├─ [90m%d visits%s yesterday[0m
+"                     "$count" "$time_display"
             fi
         else
             # Color based on activity score (visits * time)
@@ -899,11 +943,11 @@ freq() {
             fi
             
             if [[ -n "$git_display" ]]; then
-                printf "  [36m[j%d][0m %-35s (%s%d visits[0m · %s%s[0m today) [38;5;220m%s[0m
-"                     "$i" "$display_dir" "$visits_color" "$count" "$time_color" "$(_freq_dirs_format_time $time)" "$git_display"
+                printf "      ├─ %s%d visits[0m · %s%s[0m today [38;5;220m%s[0m
+"                     "$visits_color" "$count" "$time_color" "$(_freq_dirs_format_time $time)" "$git_display"
             else
-                printf "  [36m[j%d][0m %-35s (%s%d visits[0m · %s%s[0m today)
-"                     "$i" "$display_dir" "$visits_color" "$count" "$time_color" "$(_freq_dirs_format_time $time)"
+                printf "      ├─ %s%d visits[0m · %s%s[0m today
+"                     "$visits_color" "$count" "$time_color" "$(_freq_dirs_format_time $time)"
             fi
         fi
         
@@ -915,6 +959,11 @@ freq() {
     
     echo ""
     echo "💡 Commands: freq | freq --insights | freq --reset | freq --config"
+    echo ""
+    
+    # Display a random tip
+    local tip=$(_freq_dirs_get_random_tip)
+    echo "💭 Tip: $tip"
     echo ""
 }
 

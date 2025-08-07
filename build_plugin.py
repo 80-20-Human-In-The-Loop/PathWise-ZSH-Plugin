@@ -11,7 +11,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from python.constants.colors import PathWiseColors, ANSIColor
 from python.constants.git_tracker import COMMIT_CATEGORIES
+from python.constants.tips import TIPS
 from python.logic.git_tracker import get_category_keywords_for_shell, get_random_keyword_suggestions
+import random
 
 def generate_header():
     """Generate plugin header with description"""
@@ -715,6 +717,26 @@ _freq_dirs_get_merged_data() {
 }
 '''
 
+def generate_tips_array():
+    """Generate shell array of tips for random selection"""
+    # Flatten all tips into a single list with category prefix
+    all_tips = []
+    for category, tips_list in TIPS.items():
+        for tip in tips_list:
+            # Escape quotes and special characters for shell
+            escaped_tip = tip.replace('"', '\\"').replace('$', '\\$').replace('`', '\\`')
+            all_tips.append(escaped_tip)
+    
+    # Select 30 random tips to include in the shell script
+    selected_tips = random.sample(all_tips, min(30, len(all_tips)))
+    
+    tips_array = 'PATHWISE_TIPS=(\n'
+    for tip in selected_tips:
+        tips_array += f'    "{tip}"\n'
+    tips_array += ')\n'
+    
+    return tips_array
+
 def generate_freq_command():
     """Generate main freq command with arguments"""
     # Use color codes from our palette
@@ -726,7 +748,18 @@ def generate_freq_command():
     time_high = ANSIColor.BRIGHT_RED
     time_very_high = ANSIColor.RED
     
+    # Generate tips array
+    tips_array = generate_tips_array()
+    
     return f'''
+{tips_array}
+
+# Function to get a random tip
+_freq_dirs_get_random_tip() {{
+    local num_tips=${{#PATHWISE_TIPS[@]}}
+    local random_index=$((RANDOM % num_tips))
+    echo "${{PATHWISE_TIPS[$random_index]}}"
+}}
 # Main freq function with argument parsing
 freq() {{
     _freq_dirs_load_config
@@ -911,7 +944,7 @@ freq() {{
     fi
     
     echo ""
-    echo "📍 Your frequent directories:"
+    echo "PathWise Directory Frequency:"
     echo ""
     
     # Display and create aliases
@@ -932,13 +965,16 @@ freq() {{
             git_display=" [$git_count commits]"
         fi
         
+        # Two-line format for better readability
+        printf "  \033[36m[j%d]\033[0m %s\n" "$i" "$display_dir"
+        
         if [[ "$period" == "yesterday" ]]; then
             if [[ -n "$git_display" ]]; then
-                printf "  \033[36m[j%d]\033[0m %-35s \033[90m(%d visits%s yesterday)\033[0m \033[93m%s\033[0m\n" \
-                    "$i" "$display_dir" "$count" "$time_display" "$git_display"
+                printf "      ├─ \033[90m%d visits%s yesterday\033[0m \033[93m%s\033[0m\n" \
+                    "$count" "$time_display" "$git_display"
             else
-                printf "  \033[36m[j%d]\033[0m %-35s \033[90m(%d visits%s yesterday)\033[0m\n" \
-                    "$i" "$display_dir" "$count" "$time_display"
+                printf "      ├─ \033[90m%d visits%s yesterday\033[0m\n" \
+                    "$count" "$time_display"
             fi
         else
             # Color based on activity score (visits * time)
@@ -969,11 +1005,11 @@ freq() {{
             fi
             
             if [[ -n "$git_display" ]]; then
-                printf "  \033[36m[j%d]\033[0m %-35s (%s%d visits\033[0m · %s%s\033[0m today) \033[38;5;220m%s\033[0m\n" \
-                    "$i" "$display_dir" "$visits_color" "$count" "$time_color" "$(_freq_dirs_format_time $time)" "$git_display"
+                printf "      ├─ %s%d visits\033[0m · %s%s\033[0m today \033[38;5;220m%s\033[0m\n" \
+                    "$visits_color" "$count" "$time_color" "$(_freq_dirs_format_time $time)" "$git_display"
             else
-                printf "  \033[36m[j%d]\033[0m %-35s (%s%d visits\033[0m · %s%s\033[0m today)\n" \
-                    "$i" "$display_dir" "$visits_color" "$count" "$time_color" "$(_freq_dirs_format_time $time)"
+                printf "      ├─ %s%d visits\033[0m · %s%s\033[0m today\n" \
+                    "$visits_color" "$count" "$time_color" "$(_freq_dirs_format_time $time)"
             fi
         fi
         
@@ -985,6 +1021,11 @@ freq() {{
     
     echo ""
     echo "💡 Commands: freq | freq --insights | freq --reset | freq --config"
+    echo ""
+    
+    # Display a random tip
+    local tip=$(_freq_dirs_get_random_tip)
+    echo "💭 Tip: $tip"
     echo ""
 }}
 '''
