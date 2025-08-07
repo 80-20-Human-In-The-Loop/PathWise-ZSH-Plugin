@@ -962,7 +962,7 @@ freq() {{
         fi
         
         if [[ $git_count -gt 0 ]]; then
-            git_display=" [$git_count commits]"
+            git_display="[$git_count commits]"
         fi
         
         # Two-line format for better readability
