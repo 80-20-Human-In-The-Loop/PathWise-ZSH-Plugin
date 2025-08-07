@@ -1,8 +1,26 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env python3
+"""
+PathWise Plugin Builder
+Generates the pathwise.plugin.zsh file from modular components with custom colors
+"""
+
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from python.constants.colors import PathWiseColors, ANSIColor
+
+def generate_header():
+    """Generate plugin header with description"""
+    return '''#!/usr/bin/env zsh
 # PathWise - Frequent Directories Plugin with Time Tracking, Git Integration & Insights
 # Be Wise About Your Paths 🗺️
 # Tracks visited directories, time spent, git commits, and provides productivity insights
+'''
 
+def generate_data_files():
+    """Generate data file path definitions"""
+    return '''
 # Data files
 FREQ_DIRS_TODAY="${HOME}/.frequent_dirs.today"
 FREQ_DIRS_YESTERDAY="${HOME}/.frequent_dirs.yesterday"
@@ -13,7 +31,11 @@ FREQ_DIRS_INSIGHTS="${HOME}/.frequent_dirs.insights"
 FREQ_DIRS_PATTERNS="${HOME}/.frequent_dirs.patterns"
 FREQ_DIRS_GIT="${HOME}/.frequent_dirs.git"
 FREQ_DIRS_GIT_TODAY="${HOME}/.frequent_dirs.git.today"
+'''
 
+def generate_variables():
+    """Generate global variables and defaults"""
+    return '''
 # Time tracking variables
 typeset -g FREQ_CURRENT_DIR=""
 typeset -g FREQ_ENTER_TIME=""
@@ -28,7 +50,11 @@ DEFAULT_TRACK_TIME="true"
 DEFAULT_MIN_TIME="5"  # Minimum seconds in directory to track
 DEFAULT_TRACK_GIT="true"
 DEFAULT_SORT_BY="time"  # Options: visits, time, commits
+'''
 
+def generate_file_init():
+    """Generate file initialization code"""
+    return '''
 # Initialize files if they don't exist
 [[ ! -f "$FREQ_DIRS_TODAY" ]] && touch "$FREQ_DIRS_TODAY"
 [[ ! -f "$FREQ_DIRS_YESTERDAY" ]] && touch "$FREQ_DIRS_YESTERDAY"
@@ -38,7 +64,11 @@ DEFAULT_SORT_BY="time"  # Options: visits, time, commits
 [[ ! -f "$FREQ_DIRS_PATTERNS" ]] && touch "$FREQ_DIRS_PATTERNS"
 [[ ! -f "$FREQ_DIRS_GIT" ]] && touch "$FREQ_DIRS_GIT"
 [[ ! -f "$FREQ_DIRS_GIT_TODAY" ]] && touch "$FREQ_DIRS_GIT_TODAY"
+'''
 
+def generate_config_functions():
+    """Generate configuration load/save functions"""
+    return '''
 # Load configuration
 _freq_dirs_load_config() {
     # Load config file if it exists
@@ -68,7 +98,11 @@ FREQ_TRACK_GIT="${FREQ_TRACK_GIT}"
 FREQ_SORT_BY="${FREQ_SORT_BY}"
 EOF
 }
+'''
 
+def generate_utility_functions():
+    """Generate utility functions like time formatting"""
+    return '''
 # Format time duration for display
 _freq_dirs_format_time() {
     local seconds=$1
@@ -84,7 +118,11 @@ _freq_dirs_format_time() {
         echo "${secs}s"
     fi
 }
+'''
 
+def generate_git_functions():
+    """Generate git tracking and analysis functions"""
+    return '''
 # Track git commits
 _freq_dirs_track_git_commit() {
     if [[ "$FREQ_TRACK_GIT" != "true" ]]; then
@@ -227,13 +265,13 @@ _freq_dirs_analyze_commits() {
             echo "" >> "$temp_file"
             echo "  Activity breakdown:" >> "$temp_file"
             
-            [[ $fix_count -gt 0 ]] && printf "    🐛 Fixes: %d commits (%d%%)\n" "$fix_count" $((fix_count * 100 / total_commits)) >> "$temp_file"
-            [[ $feat_count -gt 0 ]] && printf "    ✨ Features: %d commits (%d%%)\n" "$feat_count" $((feat_count * 100 / total_commits)) >> "$temp_file"
-            [[ $test_count -gt 0 ]] && printf "    🧪 Tests: %d commits (%d%%)\n" "$test_count" $((test_count * 100 / total_commits)) >> "$temp_file"
-            [[ $refactor_count -gt 0 ]] && printf "    🔧 Refactoring: %d commits (%d%%)\n" "$refactor_count" $((refactor_count * 100 / total_commits)) >> "$temp_file"
-            [[ $docs_count -gt 0 ]] && printf "    📚 Documentation: %d commits (%d%%)\n" "$docs_count" $((docs_count * 100 / total_commits)) >> "$temp_file"
-            [[ $chore_count -gt 0 ]] && printf "    🔨 Chores: %d commits (%d%%)\n" "$chore_count" $((chore_count * 100 / total_commits)) >> "$temp_file"
-            [[ $other_count -gt 0 ]] && printf "    📝 Other: %d commits (%d%%)\n" "$other_count" $((other_count * 100 / total_commits)) >> "$temp_file"
+            [[ $fix_count -gt 0 ]] && printf "    🐛 Fixes: %d commits (%d%%)\\n" "$fix_count" $((fix_count * 100 / total_commits)) >> "$temp_file"
+            [[ $feat_count -gt 0 ]] && printf "    ✨ Features: %d commits (%d%%)\\n" "$feat_count" $((feat_count * 100 / total_commits)) >> "$temp_file"
+            [[ $test_count -gt 0 ]] && printf "    🧪 Tests: %d commits (%d%%)\\n" "$test_count" $((test_count * 100 / total_commits)) >> "$temp_file"
+            [[ $refactor_count -gt 0 ]] && printf "    🔧 Refactoring: %d commits (%d%%)\\n" "$refactor_count" $((refactor_count * 100 / total_commits)) >> "$temp_file"
+            [[ $docs_count -gt 0 ]] && printf "    📚 Documentation: %d commits (%d%%)\\n" "$docs_count" $((docs_count * 100 / total_commits)) >> "$temp_file"
+            [[ $chore_count -gt 0 ]] && printf "    🔨 Chores: %d commits (%d%%)\\n" "$chore_count" $((chore_count * 100 / total_commits)) >> "$temp_file"
+            [[ $other_count -gt 0 ]] && printf "    📝 Other: %d commits (%d%%)\\n" "$other_count" $((other_count * 100 / total_commits)) >> "$temp_file"
             
             # Find most active git project
             echo "" >> "$temp_file"
@@ -251,7 +289,11 @@ _freq_dirs_analyze_commits() {
     cat "$temp_file"
     rm -f "$temp_file"
 }
+'''
 
+def generate_rotation_functions():
+    """Generate daily data rotation functions"""
+    return '''
 # Check if we need to rotate data (daily reset)
 _freq_dirs_check_rotation() {
     _freq_dirs_load_config
@@ -281,7 +323,11 @@ _freq_dirs_check_rotation() {
         > "$FREQ_DIRS_GIT_TODAY"
     fi
 }
+'''
 
+def generate_time_tracking():
+    """Generate time recording functions"""
+    return '''
 # Record time spent in previous directory
 _freq_dirs_record_time() {
     if [[ -n "$FREQ_CURRENT_DIR" ]] && [[ -n "$FREQ_ENTER_TIME" ]]; then
@@ -308,7 +354,11 @@ _freq_dirs_record_time() {
         fi
     fi
 }
+'''
 
+def generate_directory_update():
+    """Generate directory visit tracking functions"""
+    return '''
 # Update directory visit count and time tracking
 _freq_dirs_update() {
     local current_dir="${PWD/#$HOME/~}"
@@ -354,7 +404,11 @@ _freq_dirs_update() {
         echo "${current_dir}|1|0" >> "$FREQ_DIRS_TODAY"
     fi
 }
+'''
 
+def generate_insights():
+    """Generate insights generation function"""
+    return '''
 # Generate insights from collected data
 _freq_dirs_generate_insights() {
     local temp_file=$(mktemp)
@@ -384,7 +438,7 @@ _freq_dirs_generate_insights() {
                 [[ -z "$time" ]] && time=0
                 if [[ $time -gt 0 ]]; then
                     local percent=$((time * 100 / total_time))
-                    printf "  %-40s %s (%d%%)\n" "$dir" "$(_freq_dirs_format_time $time)" "$percent" >> "$temp_file"
+                    printf "  %-40s %s (%d%%)\\n" "$dir" "$(_freq_dirs_format_time $time)" "$percent" >> "$temp_file"
                 fi
             done
             echo "" >> "$temp_file"
@@ -445,7 +499,11 @@ _freq_dirs_generate_insights() {
     cat "$temp_file"
     rm -f "$temp_file"
 }
+'''
 
+def generate_data_merge():
+    """Generate data merging function"""
+    return '''
 # Merge today's and yesterday's data for display
 _freq_dirs_get_merged_data() {
     local show_count="${1:-$FREQ_SHOW_COUNT}"
@@ -485,9 +543,22 @@ _freq_dirs_get_merged_data() {
     
     rm -f "$merged_file"
 }
+'''
 
+def generate_freq_command():
+    """Generate main freq command with arguments"""
+    # Use color codes from our palette
+    jump_color = ANSIColor.CYAN
+    yesterday_color = ANSIColor.BRIGHT_BLACK
+    git_color = ANSIColor.BRIGHT_YELLOW
+    time_low = ANSIColor.YELLOW
+    time_medium = ANSIColor.BRIGHT_YELLOW
+    time_high = ANSIColor.BRIGHT_RED
+    time_very_high = ANSIColor.RED
+    
+    return f'''
 # Main freq function with argument parsing
-freq() {
+freq() {{
     _freq_dirs_load_config
     
     # Parse arguments
@@ -525,16 +596,16 @@ freq() {
             echo "────────────────────────────────────"
             echo ""
             echo "Current settings:"
-            echo "  Auto-reset: ${FREQ_AUTO_RESET}"
-            echo "  Reset hour: ${FREQ_RESET_HOUR}:00"
-            echo "  Show count: ${FREQ_SHOW_COUNT} directories"
-            echo "  Track time: ${FREQ_TRACK_TIME}"
-            echo "  Min time: ${FREQ_MIN_TIME} seconds"
-            echo "  Track git: ${FREQ_TRACK_GIT}"
-            echo "  Sort by: ${FREQ_SORT_BY}"
+            echo "  Auto-reset: ${{FREQ_AUTO_RESET}}"
+            echo "  Reset hour: ${{FREQ_RESET_HOUR}}:00"
+            echo "  Show count: ${{FREQ_SHOW_COUNT}} directories"
+            echo "  Track time: ${{FREQ_TRACK_TIME}}"
+            echo "  Min time: ${{FREQ_MIN_TIME}} seconds"
+            echo "  Track git: ${{FREQ_TRACK_GIT}}"
+            echo "  Sort by: ${{FREQ_SORT_BY}}"
             echo ""
             echo "Configure:"
-            echo -n "  Enable auto-reset? (y/n) [${FREQ_AUTO_RESET}]: "
+            echo -n "  Enable auto-reset? (y/n) [${{FREQ_AUTO_RESET}}]: "
             read response
             if [[ -n "$response" ]]; then
                 if [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]; then
@@ -545,20 +616,20 @@ freq() {
             fi
             
             if [[ "$FREQ_AUTO_RESET" == "true" ]]; then
-                echo -n "  Reset hour (0-23) [${FREQ_RESET_HOUR}]: "
+                echo -n "  Reset hour (0-23) [${{FREQ_RESET_HOUR}}]: "
                 read response
                 if [[ -n "$response" ]] && [[ "$response" =~ ^[0-9]+$ ]] && [[ "$response" -ge 0 ]] && [[ "$response" -le 23 ]]; then
                     FREQ_RESET_HOUR="$response"
                 fi
             fi
             
-            echo -n "  Number of directories to show (1-10) [${FREQ_SHOW_COUNT}]: "
+            echo -n "  Number of directories to show (1-10) [${{FREQ_SHOW_COUNT}}]: "
             read response
             if [[ -n "$response" ]] && [[ "$response" =~ ^[0-9]+$ ]] && [[ "$response" -ge 1 ]] && [[ "$response" -le 10 ]]; then
                 FREQ_SHOW_COUNT="$response"
             fi
             
-            echo -n "  Enable time tracking? (y/n) [${FREQ_TRACK_TIME}]: "
+            echo -n "  Enable time tracking? (y/n) [${{FREQ_TRACK_TIME}}]: "
             read response
             if [[ -n "$response" ]]; then
                 if [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]; then
@@ -569,14 +640,14 @@ freq() {
             fi
             
             if [[ "$FREQ_TRACK_TIME" == "true" ]]; then
-                echo -n "  Minimum time to track (seconds) [${FREQ_MIN_TIME}]: "
+                echo -n "  Minimum time to track (seconds) [${{FREQ_MIN_TIME}}]: "
                 read response
                 if [[ -n "$response" ]] && [[ "$response" =~ ^[0-9]+$ ]]; then
                     FREQ_MIN_TIME="$response"
                 fi
             fi
             
-            echo -n "  Enable git tracking? (y/n) [${FREQ_TRACK_GIT}]: "
+            echo -n "  Enable git tracking? (y/n) [${{FREQ_TRACK_GIT}}]: "
             read response
             if [[ -n "$response" ]]; then
                 if [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]; then
@@ -586,7 +657,7 @@ freq() {
                 fi
             fi
             
-            echo -n "  Sort by (visits/time/commits) [${FREQ_SORT_BY}]: "
+            echo -n "  Sort by (visits/time/commits) [${{FREQ_SORT_BY}}]: "
             read response
             if [[ -n "$response" ]] && [[ "$response" == "visits" || "$response" == "time" || "$response" == "commits" ]]; then
                 FREQ_SORT_BY="$response"
@@ -608,7 +679,7 @@ freq() {
             echo "  freq --help       Show this help"
             echo ""
             echo "Jump shortcuts:"
-            echo "  j1-j${FREQ_SHOW_COUNT}            Jump to your top directories"
+            echo "  j1-j${{FREQ_SHOW_COUNT}}            Jump to your top directories"
             echo ""
             echo "Philosophy:"
             echo "  80% automation, 20% human wisdom, 100% growth 🚀"
@@ -651,10 +722,10 @@ freq() {
         
         if [[ "$period" == "yesterday" ]]; then
             if [[ -n "$git_display" ]]; then
-                printf "  \033[36m[j%d]\033[0m %-35s \033[90m(%d visits%s yesterday)\033[0m \033[93m%s\033[0m\n" \
+                printf "  \\033[36m[j%d]\\033[0m %-35s \\033[90m(%d visits%s yesterday)\\033[0m \\033[93m%s\\033[0m\\n" \\
                     "$i" "$display_dir" "$count" "$time_display" "$git_display"
             else
-                printf "  \033[36m[j%d]\033[0m %-35s \033[90m(%d visits%s yesterday)\033[0m\n" \
+                printf "  \\033[36m[j%d]\\033[0m %-35s \\033[90m(%d visits%s yesterday)\\033[0m\\n" \\
                     "$i" "$display_dir" "$count" "$time_display"
             fi
         else
@@ -669,16 +740,16 @@ freq() {
             fi
             
             if [[ -n "$git_display" ]]; then
-                printf "  \033[36m[j%d]\033[0m %-35s \033[${color}m(%d visits%s today)\033[0m \033[93m%s\033[0m\n" \
+                printf "  \\033[36m[j%d]\\033[0m %-35s \\033[${{color}}m(%d visits%s today)\\033[0m \\033[93m%s\\033[0m\\n" \\
                     "$i" "$display_dir" "$count" "$time_display" "$git_display"
             else
-                printf "  \033[36m[j%d]\033[0m %-35s \033[${color}m(%d visits%s today)\033[0m\n" \
+                printf "  \\033[36m[j%d]\\033[0m %-35s \\033[${{color}}m(%d visits%s today)\\033[0m\\n" \\
                     "$i" "$display_dir" "$count" "$time_display"
             fi
         fi
         
         # Create the jump alias dynamically
-        eval "alias j${i}='cd \"${dir/#\~/$HOME}\"'"
+        eval "alias j${{i}}='cd \\"${{dir/#\\~/$HOME}}\\"'"
         
         i=$((i + 1))
     done <<< "$merged_data"
@@ -686,8 +757,12 @@ freq() {
     echo ""
     echo "💡 Commands: freq | freq --insights | freq --reset | freq --config"
     echo ""
-}
+}}
+'''
 
+def generate_setup_functions():
+    """Generate alias setup and cleanup functions"""
+    return '''
 # Setup jump aliases on shell startup
 _freq_dirs_setup_aliases() {
     _freq_dirs_load_config
@@ -702,7 +777,7 @@ _freq_dirs_setup_aliases() {
     # Create aliases for top directories
     local i=1
     while IFS='|' read -r dir count time git_count period; do
-        eval "alias j${i}='cd \"${dir/#\~/$HOME}\"'"
+        eval "alias j${i}='cd \\"${dir/#\\~/$HOME}\\"'"
         i=$((i + 1))
     done <<< "$merged_data"
 }
@@ -730,7 +805,11 @@ _freq_dirs_git_wrapper() {
     
     return $exit_code
 }
+'''
 
+def generate_hooks():
+    """Generate shell hooks and initialization"""
+    return '''
 # Hook into directory change
 autoload -U add-zsh-hook
 add-zsh-hook chpwd _freq_dirs_update
@@ -746,3 +825,38 @@ _freq_dirs_setup_aliases
 FREQ_SESSION_START=$(date +%s)
 
 # Startup display is handled in .zshrc for priority visibility
+'''
+
+def main():
+    """Main function to build the plugin"""
+    print("Building PathWise plugin...")
+    
+    # Generate all parts
+    plugin_content = ""
+    plugin_content += generate_header()
+    plugin_content += generate_data_files()
+    plugin_content += generate_variables()
+    plugin_content += generate_file_init()
+    plugin_content += generate_config_functions()
+    plugin_content += generate_utility_functions()
+    plugin_content += generate_git_functions()
+    plugin_content += generate_rotation_functions()
+    plugin_content += generate_time_tracking()
+    plugin_content += generate_directory_update()
+    plugin_content += generate_insights()
+    plugin_content += generate_data_merge()
+    plugin_content += generate_freq_command()
+    plugin_content += generate_setup_functions()
+    plugin_content += generate_hooks()
+    
+    # Write to file
+    output_path = "/home/mathew/projects/zshplugs/pathwise/pathwise.plugin.zsh"
+    with open(output_path, "w") as f:
+        f.write(plugin_content)
+    
+    print(f"✅ Plugin built successfully: {output_path}")
+    print(f"   Total size: {len(plugin_content)} bytes")
+    print(f"   Lines: {plugin_content.count(chr(10))} lines")
+
+if __name__ == "__main__":
+    main()

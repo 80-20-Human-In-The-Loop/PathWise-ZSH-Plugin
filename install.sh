@@ -11,6 +11,13 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+# Check for local installation flag
+LOCAL_INSTALL=false
+if [ "$1" = "local" ]; then
+    LOCAL_INSTALL=true
+    echo -e "${YELLOW}📦 Local installation mode${NC}"
+fi
+
 echo -e "${BOLD}${BLUE}🗺️  PathWise Installer${NC}"
 echo -e "${BOLD}Be Wise About Your Paths${NC}"
 echo ""
@@ -54,29 +61,55 @@ if [ -d "$PLUGIN_DIR" ]; then
     rm -rf "$PLUGIN_DIR"
 fi
 
-# Clone repository
+# Install PathWise
 echo -e "${BLUE}→${NC} Installing PathWise..."
-if command -v git &> /dev/null; then
-    git clone https://github.com/80-20-Human-In-The-Loop/PathWise-ZSH-Plugin.git "$PLUGIN_DIR" 2>/dev/null || {
-        # If GitHub repo doesn't exist yet, copy local files
-        SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-        if [ -d "$SCRIPT_DIR" ]; then
-            mkdir -p "$PLUGIN_DIR"
-            # Copy only the necessary plugin files
-            cp "$SCRIPT_DIR/pathwise.plugin.zsh" "$PLUGIN_DIR/" 2>/dev/null
-            [ -f "$SCRIPT_DIR/README.md" ] && cp "$SCRIPT_DIR/README.md" "$PLUGIN_DIR/"
-            [ -f "$SCRIPT_DIR/LICENSE" ] && cp "$SCRIPT_DIR/LICENSE" "$PLUGIN_DIR/"
-            [ -f "$SCRIPT_DIR/install.sh" ] && cp "$SCRIPT_DIR/install.sh" "$PLUGIN_DIR/"
-            [ -f "$SCRIPT_DIR/uninstall.sh" ] && cp "$SCRIPT_DIR/uninstall.sh" "$PLUGIN_DIR/"
-            echo -e "${GREEN}✓${NC} Installed from local files"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+if [ "$LOCAL_INSTALL" = true ]; then
+    # Local installation - build and copy from current directory
+    echo -e "${BLUE}→${NC} Building plugin from source..."
+    
+    # Build the plugin if build script exists
+    if [ -f "$SCRIPT_DIR/build_plugin.py" ]; then
+        if command -v python3 &> /dev/null; then
+            (cd "$SCRIPT_DIR" && python3 build_plugin.py)
+            echo -e "${GREEN}✓${NC} Plugin built successfully"
         else
-            echo -e "${RED}Error: Could not install PathWise${NC}"
-            exit 1
+            echo -e "${YELLOW}⚠${NC} Python3 not found, using existing plugin file"
         fi
-    }
+    fi
+    
+    # Copy files from local directory
+    mkdir -p "$PLUGIN_DIR"
+    cp "$SCRIPT_DIR/pathwise.plugin.zsh" "$PLUGIN_DIR/" 2>/dev/null
+    [ -f "$SCRIPT_DIR/README.md" ] && cp "$SCRIPT_DIR/README.md" "$PLUGIN_DIR/"
+    [ -f "$SCRIPT_DIR/LICENSE" ] && cp "$SCRIPT_DIR/LICENSE" "$PLUGIN_DIR/"
+    [ -f "$SCRIPT_DIR/install.sh" ] && cp "$SCRIPT_DIR/install.sh" "$PLUGIN_DIR/"
+    [ -f "$SCRIPT_DIR/uninstall.sh" ] && cp "$SCRIPT_DIR/uninstall.sh" "$PLUGIN_DIR/"
+    echo -e "${GREEN}✓${NC} Installed from local files"
 else
-    echo -e "${RED}Error: Git is required for installation${NC}"
-    exit 1
+    # Try to clone from GitHub first
+    if command -v git &> /dev/null; then
+        git clone https://github.com/80-20-Human-In-The-Loop/PathWise-ZSH-Plugin.git "$PLUGIN_DIR" 2>/dev/null || {
+            # If GitHub repo doesn't exist yet, copy local files
+            if [ -d "$SCRIPT_DIR" ]; then
+                mkdir -p "$PLUGIN_DIR"
+                # Copy only the necessary plugin files
+                cp "$SCRIPT_DIR/pathwise.plugin.zsh" "$PLUGIN_DIR/" 2>/dev/null
+                [ -f "$SCRIPT_DIR/README.md" ] && cp "$SCRIPT_DIR/README.md" "$PLUGIN_DIR/"
+                [ -f "$SCRIPT_DIR/LICENSE" ] && cp "$SCRIPT_DIR/LICENSE" "$PLUGIN_DIR/"
+                [ -f "$SCRIPT_DIR/install.sh" ] && cp "$SCRIPT_DIR/install.sh" "$PLUGIN_DIR/"
+                [ -f "$SCRIPT_DIR/uninstall.sh" ] && cp "$SCRIPT_DIR/uninstall.sh" "$PLUGIN_DIR/"
+                echo -e "${GREEN}✓${NC} Installed from local files"
+            else
+                echo -e "${RED}Error: Could not install PathWise${NC}"
+                exit 1
+            fi
+        }
+    else
+        echo -e "${RED}Error: Git is required for installation${NC}"
+        exit 1
+    fi
 fi
 
 # Configure .zshrc
