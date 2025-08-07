@@ -1,5 +1,7 @@
 # 🗺️ PathWise - Smart Directory Navigation for Zsh
 
+![_ PathWise Logo Design Prompt__Core Concept____A retro-futuristic terminal navigation companion blending 80s computer nostalgia with modern productivity insights____Key Elements to Include___ Retro Terminal Vibe___ CRT moni](https://github.com/user-attachments/assets/f678ed0b-76b9-4e07-a284-5685d3a7a9b2)
+
 PathWise helps you work faster by remembering the directories you visit most. Jump to your favorite folders with simple shortcuts and see how you spend your time.
 
 ## What PathWise Does
