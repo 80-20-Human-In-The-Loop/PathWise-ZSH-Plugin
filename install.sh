@@ -15,21 +15,20 @@ echo -e "${BOLD}${BLUE}🗺️  PathWise Installer${NC}"
 echo -e "${BOLD}Be Wise About Your Paths${NC}"
 echo ""
 
-# Detect shell
-if [ -n "$ZSH_VERSION" ]; then
-    SHELL_TYPE="zsh"
-elif [ -n "$BASH_VERSION" ]; then
+# Check if Zsh is installed on the system
+if ! command -v zsh &> /dev/null; then
     echo -e "${RED}Error: PathWise requires Zsh${NC}"
     echo "Please install Zsh and try again"
+    echo ""
+    echo "Installation instructions:"
+    echo "  Ubuntu/Debian: sudo apt install zsh"
+    echo "  Fedora/RHEL:   sudo dnf install zsh"
+    echo "  macOS:         brew install zsh"
+    echo "  Arch:          sudo pacman -S zsh"
     exit 1
 else
-    echo -e "${YELLOW}Warning: Could not detect shell type${NC}"
-    read -p "Are you using Zsh? (y/n) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo -e "${RED}PathWise requires Zsh${NC}"
-        exit 1
-    fi
+    ZSH_PATH=$(command -v zsh)
+    echo -e "${GREEN}✓${NC} Zsh detected at $ZSH_PATH"
 fi
 
 # Check for Oh My Zsh

@@ -30,7 +30,7 @@ After visiting directories, PathWise creates dynamic shortcuts:
 
 1. Clone the repository into your Oh My Zsh custom plugins directory:
 ```bash
-git clone https://github.com/yourusername/pathwise.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/pathwise
+git clone https://github.com/80-20-Human-In-The-Loop/PathWise-ZSH-Plugin.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/pathwise
 ```
 
 2. Add `pathwise` to your plugins list in `~/.zshrc`:
@@ -47,7 +47,7 @@ source ~/.zshrc
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/pathwise.git ~/projects/zshplugs/pathwise
+git clone https://github.com/80-20-Human-In-The-Loop/PathWise-ZSH-Plugin.git ~/projects/zshplugs/pathwise
 ```
 
 2. Source the plugin in your `~/.zshrc`:
@@ -62,7 +62,7 @@ source ~/.zshrc
 
 ### Quick Install Script
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yourusername/pathwise/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/80-20-Human-In-The-Loop/PathWise-ZSH-Plugin/main/install.sh | bash
 ```
 
 ## 📖 Usage
@@ -174,8 +174,8 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 💬 Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/pathwise/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/pathwise/discussions)
+- **Issues**: [GitHub Issues](https://github.com/80-20-Human-In-The-Loop/PathWise-ZSH-Plugin/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/80-20-Human-In-The-Loop/PathWise-ZSH-Plugin/discussions)
 - **Philosophy**: [80-20 Human-in-the-Loop](https://github.com/80-20-Human-In-The-Loop/Community)
 
 ---
