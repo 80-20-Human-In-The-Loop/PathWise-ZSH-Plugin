@@ -149,20 +149,20 @@ _freq_dirs_categorize_commit() {
     local categories=(revert fix feat perf refactor test build ci docs style chore)
     local priorities=(100 90 80 70 60 50 40 30 20 10 5)
     
-    local i=0
+    local i=1  # Zsh arrays are 1-indexed
     for category in "${categories[@]}"; do
         local keyword_count=0
         local keywords_var="${category}_keywords"
         eval "local keywords=\$${keywords_var}"
         
-        for keyword in $keywords; do
+        for keyword in ${=keywords}; do  # Use word splitting in zsh
             if [[ "$msg_lower" == *"$keyword"* ]]; then
                 ((keyword_count++))
             fi
         done
         
         if [[ $keyword_count -gt 0 ]]; then
-            local score=$((keyword_count * priorities[i]))
+            local score=$((keyword_count * priorities[$i]))  # Use $i for proper array access
             if [[ $score -gt $best_score ]]; then
                 best_score=$score
                 best_category=$category
@@ -174,11 +174,63 @@ _freq_dirs_categorize_commit() {
     echo "$best_category"
 }
 
+# Get category and matching keyword for a commit
+_freq_dirs_categorize_with_keyword() {
+    local msg_lower="$1"
+    local best_category="other"
+    local best_keyword=""
+    local best_score=0
+    
+    # Keywords for categorization (priority-ordered)
+    local revert_keywords="revert rollback undo back out backout rewind restore reset reverse unmerge"
+    local fix_keywords="fix fixed fixes bugfix hotfix patch bug resolve resolved resolves solved solve issue error crash broken fault mistake correct repair handle prevent avoid typo oops"
+    local feat_keywords="feat feature add added adds new implement implemented introduce introduced create created enhance enhanced extend support enable allow integrate develop include provide setup"
+    local perf_keywords="perf performance optimize optimized optimization faster speed speedup improve boost accelerate efficient reduce decreased cache lazy quick enhance performance reduce memory reduce time"
+    local refactor_keywords="refactor refactored refactoring restructure rewrite rework simplify extract move moved rename renamed reorganize clean cleanup improve decouple abstract consolidate deduplicate modularize split"
+    local test_keywords="test tests testing spec specs coverage unit integration e2e jest pytest mock stub fixture assertion expect should verify validate check ensure prove tdd bdd"
+    local build_keywords="build compile bundle webpack rollup vite make cmake gradle maven npm yarn pnpm package dist transpile babel typescript tsc esbuild swc minify uglify compress"
+    local ci_keywords="ci cd pipeline github actions actions travis jenkins circle circleci deploy deployment release publish docker kubernetes k8s helm terraform ansible workflow automation"
+    local docs_keywords="docs documentation readme comment comments javadoc jsdoc docstring api doc guide tutorial example clarify explain describe document wiki changelog notes annotation usage"
+    local style_keywords="style format formatting lint linting prettier eslint pylint rubocop whitespace indent indentation semicolon quotes spacing code style convention pep8 black gofmt rustfmt standardize"
+    local chore_keywords="chore update updated upgrade bump deps dependencies dependency version maintain routine housekeeping misc minor tweak adjust modify prepare setup config configure init bootstrap"
+    
+    # Check each category and calculate scores
+    local categories=(revert fix feat perf refactor test build ci docs style chore)
+    local priorities=(100 90 80 70 60 50 40 30 20 10 5)
+    
+    local i=1  # Zsh arrays are 1-indexed
+    for category in "${categories[@]}"; do
+        local keyword_count=0
+        local found_keyword=""
+        local keywords_var="${category}_keywords"
+        eval "local keywords=\$${keywords_var}"
+        
+        for keyword in ${=keywords}; do  # Use word splitting in zsh
+            if [[ "$msg_lower" == *"$keyword"* ]]; then
+                ((keyword_count++))
+                [[ -z "$found_keyword" ]] && found_keyword="$keyword"
+            fi
+        done
+        
+        if [[ $keyword_count -gt 0 ]]; then
+            local score=$((keyword_count * priorities[$i]))  # Use $i for proper array access
+            if [[ $score -gt $best_score ]]; then
+                best_score=$score
+                best_category=$category
+                best_keyword=$found_keyword
+            fi
+        fi
+        ((i++))
+    done
+    
+    echo "${best_category}|${best_keyword}"
+}
+
 # Analyze git commit types
 _freq_dirs_analyze_commits() {
     local temp_file=$(mktemp)
     
-    # Category counters
+    # Category counters and keywords
     local revert_count=0
     local fix_count=0
     local feat_count=0
@@ -192,6 +244,19 @@ _freq_dirs_analyze_commits() {
     local chore_count=0
     local other_count=0
     
+    # Store found keywords for each category
+    local revert_keywords=""
+    local fix_keywords=""
+    local feat_keywords=""
+    local perf_keywords=""
+    local refactor_keywords=""
+    local test_keywords=""
+    local build_keywords=""
+    local ci_keywords=""
+    local docs_keywords=""
+    local style_keywords=""
+    local chore_keywords=""
+    
     if [[ -s "$FREQ_DIRS_GIT" ]]; then
         # Get today's commits
         local today=$(date +%Y-%m-%d)
@@ -202,21 +267,58 @@ _freq_dirs_analyze_commits() {
             [[ $timestamp -lt $today_timestamp ]] && continue
             
             local msg_lower=$(echo "$msg" | tr '[:upper:]' '[:lower:]')
-            local category=$(_freq_dirs_categorize_commit "$msg_lower")
+            local result=$(_freq_dirs_categorize_with_keyword "$msg_lower")
+            local category=$(echo "$result" | cut -d'|' -f1)
+            local keyword=$(echo "$result" | cut -d'|' -f2)
             
             case "$category" in
-                revert) ((revert_count++)) ;;
-                fix) ((fix_count++)) ;;
-                feat) ((feat_count++)) ;;
-                perf) ((perf_count++)) ;;
-                refactor) ((refactor_count++)) ;;
-                test) ((test_count++)) ;;
-                build) ((build_count++)) ;;
-                ci) ((ci_count++)) ;;
-                docs) ((docs_count++)) ;;
-                style) ((style_count++)) ;;
-                chore) ((chore_count++)) ;;
-                *) ((other_count++)) ;;
+                revert) 
+                    ((revert_count++))
+                    [[ -n "$keyword" ]] && revert_keywords="$revert_keywords $keyword"
+                    ;;
+                fix) 
+                    ((fix_count++))
+                    [[ -n "$keyword" ]] && fix_keywords="$fix_keywords $keyword"
+                    ;;
+                feat) 
+                    ((feat_count++))
+                    [[ -n "$keyword" ]] && feat_keywords="$feat_keywords $keyword"
+                    ;;
+                perf) 
+                    ((perf_count++))
+                    [[ -n "$keyword" ]] && perf_keywords="$perf_keywords $keyword"
+                    ;;
+                refactor) 
+                    ((refactor_count++))
+                    [[ -n "$keyword" ]] && refactor_keywords="$refactor_keywords $keyword"
+                    ;;
+                test) 
+                    ((test_count++))
+                    [[ -n "$keyword" ]] && test_keywords="$test_keywords $keyword"
+                    ;;
+                build) 
+                    ((build_count++))
+                    [[ -n "$keyword" ]] && build_keywords="$build_keywords $keyword"
+                    ;;
+                ci) 
+                    ((ci_count++))
+                    [[ -n "$keyword" ]] && ci_keywords="$ci_keywords $keyword"
+                    ;;
+                docs) 
+                    ((docs_count++))
+                    [[ -n "$keyword" ]] && docs_keywords="$docs_keywords $keyword"
+                    ;;
+                style) 
+                    ((style_count++))
+                    [[ -n "$keyword" ]] && style_keywords="$style_keywords $keyword"
+                    ;;
+                chore) 
+                    ((chore_count++))
+                    [[ -n "$keyword" ]] && chore_keywords="$chore_keywords $keyword"
+                    ;;
+                *) 
+                    ((other_count++))
+                    ;;
             esac
         done < "$FREQ_DIRS_GIT"
         
@@ -228,17 +330,50 @@ _freq_dirs_analyze_commits() {
             echo "" >> "$temp_file"
             printf "  \033[36mActivity breakdown:\033[0m\n" >> "$temp_file"
             
-            [[ $revert_count -gt 0 ]] && printf "    ⏪ Reverts: %d commits \033[93m(%d%%)\033[0m\n" "$revert_count" $((revert_count * 100 / total_commits)) >> "$temp_file"
-            [[ $fix_count -gt 0 ]] && printf "    🐛 Fixes: %d commits \033[93m(%d%%)\033[0m\n" "$fix_count" $((fix_count * 100 / total_commits)) >> "$temp_file"
-            [[ $feat_count -gt 0 ]] && printf "    ✨ Features: %d commits \033[93m(%d%%)\033[0m\n" "$feat_count" $((feat_count * 100 / total_commits)) >> "$temp_file"
-            [[ $perf_count -gt 0 ]] && printf "    ⚡ Performance: %d commits \033[93m(%d%%)\033[0m\n" "$perf_count" $((perf_count * 100 / total_commits)) >> "$temp_file"
-            [[ $refactor_count -gt 0 ]] && printf "    🔧 Refactoring: %d commits \033[93m(%d%%)\033[0m\n" "$refactor_count" $((refactor_count * 100 / total_commits)) >> "$temp_file"
-            [[ $test_count -gt 0 ]] && printf "    🧪 Tests: %d commits \033[93m(%d%%)\033[0m\n" "$test_count" $((test_count * 100 / total_commits)) >> "$temp_file"
-            [[ $build_count -gt 0 ]] && printf "    📦 Build: %d commits \033[93m(%d%%)\033[0m\n" "$build_count" $((build_count * 100 / total_commits)) >> "$temp_file"
-            [[ $ci_count -gt 0 ]] && printf "    🔄 CI/CD: %d commits \033[93m(%d%%)\033[0m\n" "$ci_count" $((ci_count * 100 / total_commits)) >> "$temp_file"
-            [[ $docs_count -gt 0 ]] && printf "    📚 Documentation: %d commits \033[93m(%d%%)\033[0m\n" "$docs_count" $((docs_count * 100 / total_commits)) >> "$temp_file"
-            [[ $style_count -gt 0 ]] && printf "    💅 Style: %d commits \033[93m(%d%%)\033[0m\n" "$style_count" $((style_count * 100 / total_commits)) >> "$temp_file"
-            [[ $chore_count -gt 0 ]] && printf "    🔨 Chores: %d commits \033[93m(%d%%)\033[0m\n" "$chore_count" $((chore_count * 100 / total_commits)) >> "$temp_file"
+            if [[ $revert_count -gt 0 ]]; then
+                local keyword=$(echo $revert_keywords | tr ' ' '\n' | grep -v '^$' | shuf -n 1)
+                printf "    ⏪ Reverts: %d commits \033[93m(%d%%) \033[90m\"%s\"\033[0m\n" "$revert_count" $((revert_count * 100 / total_commits)) "$keyword" >> "$temp_file"
+            fi
+            if [[ $fix_count -gt 0 ]]; then
+                local keyword=$(echo $fix_keywords | tr ' ' '\n' | grep -v '^$' | shuf -n 1)
+                printf "    🐛 Fixes: %d commits \033[93m(%d%%) \033[90m\"%s\"\033[0m\n" "$fix_count" $((fix_count * 100 / total_commits)) "$keyword" >> "$temp_file"
+            fi
+            if [[ $feat_count -gt 0 ]]; then
+                local keyword=$(echo $feat_keywords | tr ' ' '\n' | grep -v '^$' | shuf -n 1)
+                printf "    ✨ Features: %d commits \033[93m(%d%%) \033[90m\"%s\"\033[0m\n" "$feat_count" $((feat_count * 100 / total_commits)) "$keyword" >> "$temp_file"
+            fi
+            if [[ $perf_count -gt 0 ]]; then
+                local keyword=$(echo $perf_keywords | tr ' ' '\n' | grep -v '^$' | shuf -n 1)
+                printf "    ⚡ Performance: %d commits \033[93m(%d%%) \033[90m\"%s\"\033[0m\n" "$perf_count" $((perf_count * 100 / total_commits)) "$keyword" >> "$temp_file"
+            fi
+            if [[ $refactor_count -gt 0 ]]; then
+                local keyword=$(echo $refactor_keywords | tr ' ' '\n' | grep -v '^$' | shuf -n 1)
+                printf "    🔧 Refactoring: %d commits \033[93m(%d%%) \033[90m\"%s\"\033[0m\n" "$refactor_count" $((refactor_count * 100 / total_commits)) "$keyword" >> "$temp_file"
+            fi
+            if [[ $test_count -gt 0 ]]; then
+                local keyword=$(echo $test_keywords | tr ' ' '\n' | grep -v '^$' | shuf -n 1)
+                printf "    🧪 Tests: %d commits \033[93m(%d%%) \033[90m\"%s\"\033[0m\n" "$test_count" $((test_count * 100 / total_commits)) "$keyword" >> "$temp_file"
+            fi
+            if [[ $build_count -gt 0 ]]; then
+                local keyword=$(echo $build_keywords | tr ' ' '\n' | grep -v '^$' | shuf -n 1)
+                printf "    📦 Build: %d commits \033[93m(%d%%) \033[90m\"%s\"\033[0m\n" "$build_count" $((build_count * 100 / total_commits)) "$keyword" >> "$temp_file"
+            fi
+            if [[ $ci_count -gt 0 ]]; then
+                local keyword=$(echo $ci_keywords | tr ' ' '\n' | grep -v '^$' | shuf -n 1)
+                printf "    🔄 CI/CD: %d commits \033[93m(%d%%) \033[90m\"%s\"\033[0m\n" "$ci_count" $((ci_count * 100 / total_commits)) "$keyword" >> "$temp_file"
+            fi
+            if [[ $docs_count -gt 0 ]]; then
+                local keyword=$(echo $docs_keywords | tr ' ' '\n' | grep -v '^$' | shuf -n 1)
+                printf "    📚 Documentation: %d commits \033[93m(%d%%) \033[90m\"%s\"\033[0m\n" "$docs_count" $((docs_count * 100 / total_commits)) "$keyword" >> "$temp_file"
+            fi
+            if [[ $style_count -gt 0 ]]; then
+                local keyword=$(echo $style_keywords | tr ' ' '\n' | grep -v '^$' | shuf -n 1)
+                printf "    💅 Style: %d commits \033[93m(%d%%) \033[90m\"%s\"\033[0m\n" "$style_count" $((style_count * 100 / total_commits)) "$keyword" >> "$temp_file"
+            fi
+            if [[ $chore_count -gt 0 ]]; then
+                local keyword=$(echo $chore_keywords | tr ' ' '\n' | grep -v '^$' | shuf -n 1)
+                printf "    🔨 Chores: %d commits \033[93m(%d%%) \033[90m\"%s\"\033[0m\n" "$chore_count" $((chore_count * 100 / total_commits)) "$keyword" >> "$temp_file"
+            fi
             [[ $other_count -gt 0 ]] && printf "    📝 Other: %d commits \033[93m(%d%%)\033[0m\n" "$other_count" $((other_count * 100 / total_commits)) >> "$temp_file"
             
             # Add keyword suggestions if there are "other" commits
@@ -557,21 +692,43 @@ freq() {
             ;;
         --config|-c)
             echo ""
-            echo "⚙️  PathWise Configuration"
-            echo "────────────────────────────────────"
+            printf "\033[36m⚙️  PathWise Configuration\033[0m\n"
+            printf "\033[90m────────────────────────────────────\033[0m\n"
             echo ""
-            echo "Current settings:"
-            echo "  Auto-reset: ${FREQ_AUTO_RESET}"
-            echo "  Reset hour: ${FREQ_RESET_HOUR}:00"
-            echo "  Show count: ${FREQ_SHOW_COUNT} directories"
-            echo "  Track time: ${FREQ_TRACK_TIME}"
-            echo "  Min time: ${FREQ_MIN_TIME} seconds"
-            echo "  Track git: ${FREQ_TRACK_GIT}"
-            echo "  Sort by: ${FREQ_SORT_BY}"
+            printf "\033[93mCurrent settings:\033[0m\n"
+            
+            # Color code the values based on their state
+            if [[ "${FREQ_AUTO_RESET}" == "true" ]]; then
+                printf "  Auto-reset: \033[92menabled\033[0m\n"
+            else
+                printf "  Auto-reset: \033[91mdisabled\033[0m\n"
+            fi
+            
+            printf "  Reset hour: \033[93m${FREQ_RESET_HOUR}:00\033[0m\n"
+            printf "  Show count: \033[94m${FREQ_SHOW_COUNT}\033[0m directories\n"
+            
+            if [[ "${FREQ_TRACK_TIME}" == "true" ]]; then
+                printf "  Track time: \033[92menabled\033[0m\n"
+            else
+                printf "  Track time: \033[91mdisabled\033[0m\n"
+            fi
+            
+            printf "  Min time: \033[94m${FREQ_MIN_TIME}\033[0m seconds\n"
+            
+            if [[ "${FREQ_TRACK_GIT}" == "true" ]]; then
+                printf "  Track git: \033[92menabled\033[0m\n"
+            else
+                printf "  Track git: \033[91mdisabled\033[0m\n"
+            fi
+            
+            printf "  Sort by: \033[95m${FREQ_SORT_BY}\033[0m\n"
             echo ""
-            echo "Configure:"
-            echo -n "  Enable auto-reset? (y/n) [${FREQ_AUTO_RESET}]: "
+            printf "\033[36mConfigure:\033[0m\n"
+            
+            # Auto-reset configuration
+            printf "\033[96m  Enable auto-reset?\033[0m (y/n) \033[90m[${FREQ_AUTO_RESET}]\033[0m: "
             read response
+            printf "  \033[90m→ Options: y=enable daily reset, n=keep data forever, Enter=no change\033[0m\n"
             if [[ -n "$response" ]]; then
                 if [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]; then
                     FREQ_AUTO_RESET="true"
@@ -579,23 +736,29 @@ freq() {
                     FREQ_AUTO_RESET="false"
                 fi
             fi
+            echo ""
             
             if [[ "$FREQ_AUTO_RESET" == "true" ]]; then
-                echo -n "  Reset hour (0-23) [${FREQ_RESET_HOUR}]: "
+                printf "\033[96m  Reset hour\033[0m (0-23) \033[90m[${FREQ_RESET_HOUR}]\033[0m: "
                 read response
+                printf "  \033[90m→ Options: 0=midnight, 12=noon, 23=11pm, Enter=no change\033[0m\n"
                 if [[ -n "$response" ]] && [[ "$response" =~ ^[0-9]+$ ]] && [[ "$response" -ge 0 ]] && [[ "$response" -le 23 ]]; then
                     FREQ_RESET_HOUR="$response"
                 fi
+                echo ""
             fi
             
-            echo -n "  Number of directories to show (1-10) [${FREQ_SHOW_COUNT}]: "
+            printf "\033[96m  Number of directories to show\033[0m (1-10) \033[90m[${FREQ_SHOW_COUNT}]\033[0m: "
             read response
+            printf "  \033[90m→ Options: 1-10 directories, Enter=no change\033[0m\n"
             if [[ -n "$response" ]] && [[ "$response" =~ ^[0-9]+$ ]] && [[ "$response" -ge 1 ]] && [[ "$response" -le 10 ]]; then
                 FREQ_SHOW_COUNT="$response"
             fi
+            echo ""
             
-            echo -n "  Enable time tracking? (y/n) [${FREQ_TRACK_TIME}]: "
+            printf "\033[96m  Enable time tracking?\033[0m (y/n) \033[90m[${FREQ_TRACK_TIME}]\033[0m: "
             read response
+            printf "  \033[90m→ Options: y=track time spent, n=only track visits, Enter=no change\033[0m\n"
             if [[ -n "$response" ]]; then
                 if [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]; then
                     FREQ_TRACK_TIME="true"
@@ -603,17 +766,21 @@ freq() {
                     FREQ_TRACK_TIME="false"
                 fi
             fi
+            echo ""
             
             if [[ "$FREQ_TRACK_TIME" == "true" ]]; then
-                echo -n "  Minimum time to track (seconds) [${FREQ_MIN_TIME}]: "
+                printf "\033[96m  Minimum time to track\033[0m (seconds) \033[90m[${FREQ_MIN_TIME}]\033[0m: "
                 read response
+                printf "  \033[90m→ Options: 0=track all, 5=default, 60=only 1min+, Enter=no change\033[0m\n"
                 if [[ -n "$response" ]] && [[ "$response" =~ ^[0-9]+$ ]]; then
                     FREQ_MIN_TIME="$response"
                 fi
+                echo ""
             fi
             
-            echo -n "  Enable git tracking? (y/n) [${FREQ_TRACK_GIT}]: "
+            printf "\033[96m  Enable git tracking?\033[0m (y/n) \033[90m[${FREQ_TRACK_GIT}]\033[0m: "
             read response
+            printf "  \033[90m→ Options: y=track git commits, n=disable git features, Enter=no change\033[0m\n"
             if [[ -n "$response" ]]; then
                 if [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]; then
                     FREQ_TRACK_GIT="true"
@@ -621,16 +788,19 @@ freq() {
                     FREQ_TRACK_GIT="false"
                 fi
             fi
+            echo ""
             
-            echo -n "  Sort by (visits/time/commits) [${FREQ_SORT_BY}]: "
+            printf "\033[96m  Sort by\033[0m (visits/time/commits) \033[90m[${FREQ_SORT_BY}]\033[0m: "
             read response
+            printf "  \033[90m→ Options: visits=most visited, time=longest time, commits=most commits, Enter=no change\033[0m\n"
             if [[ -n "$response" ]] && [[ "$response" == "visits" || "$response" == "time" || "$response" == "commits" ]]; then
                 FREQ_SORT_BY="$response"
             fi
+            echo ""
             
             _freq_dirs_save_config
             echo ""
-            echo "✅ Configuration saved!"
+            printf "\033[92m✅ Configuration saved!\033[0m\n"
             return
             ;;
         --help|-h)
