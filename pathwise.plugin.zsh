@@ -1,7 +1,7 @@
 #!/usr/bin/env zsh
-# PathWise - Frequent Directories Plugin with Time Tracking & Insights
+# PathWise - Frequent Directories Plugin with Time Tracking, Git Integration & Insights
 # Be Wise About Your Paths 🗺️
-# Tracks visited directories, time spent, and provides productivity insights
+# Tracks visited directories, time spent, git commits, and provides productivity insights
 
 # Data files
 FREQ_DIRS_TODAY="${HOME}/.frequent_dirs.today"
@@ -11,6 +11,8 @@ FREQ_DIRS_LAST_RESET="${HOME}/.frequent_dirs.last_reset"
 FREQ_DIRS_SESSIONS="${HOME}/.frequent_dirs.sessions"
 FREQ_DIRS_INSIGHTS="${HOME}/.frequent_dirs.insights"
 FREQ_DIRS_PATTERNS="${HOME}/.frequent_dirs.patterns"
+FREQ_DIRS_GIT="${HOME}/.frequent_dirs.git"
+FREQ_DIRS_GIT_TODAY="${HOME}/.frequent_dirs.git.today"
 
 # Time tracking variables
 typeset -g FREQ_CURRENT_DIR=""
@@ -24,6 +26,8 @@ DEFAULT_RESET_HOUR="0"
 DEFAULT_SHOW_COUNT="5"
 DEFAULT_TRACK_TIME="true"
 DEFAULT_MIN_TIME="5"  # Minimum seconds in directory to track
+DEFAULT_TRACK_GIT="true"
+DEFAULT_SORT_BY="time"  # Options: visits, time, commits
 
 # Initialize files if they don't exist
 [[ ! -f "$FREQ_DIRS_TODAY" ]] && touch "$FREQ_DIRS_TODAY"
@@ -32,18 +36,24 @@ DEFAULT_MIN_TIME="5"  # Minimum seconds in directory to track
 [[ ! -f "$FREQ_DIRS_SESSIONS" ]] && touch "$FREQ_DIRS_SESSIONS"
 [[ ! -f "$FREQ_DIRS_INSIGHTS" ]] && touch "$FREQ_DIRS_INSIGHTS"
 [[ ! -f "$FREQ_DIRS_PATTERNS" ]] && touch "$FREQ_DIRS_PATTERNS"
+[[ ! -f "$FREQ_DIRS_GIT" ]] && touch "$FREQ_DIRS_GIT"
+[[ ! -f "$FREQ_DIRS_GIT_TODAY" ]] && touch "$FREQ_DIRS_GIT_TODAY"
 
 # Load configuration
 _freq_dirs_load_config() {
+    # Load config file if it exists
     if [[ -f "$FREQ_DIRS_CONFIG" ]]; then
         source "$FREQ_DIRS_CONFIG"
-    else
-        FREQ_AUTO_RESET="${DEFAULT_AUTO_RESET}"
-        FREQ_RESET_HOUR="${DEFAULT_RESET_HOUR}"
-        FREQ_SHOW_COUNT="${DEFAULT_SHOW_COUNT}"
-        FREQ_TRACK_TIME="${DEFAULT_TRACK_TIME}"
-        FREQ_MIN_TIME="${DEFAULT_MIN_TIME}"
     fi
+    
+    # Set defaults for any missing values
+    [[ -z "$FREQ_AUTO_RESET" ]] && FREQ_AUTO_RESET="${DEFAULT_AUTO_RESET}"
+    [[ -z "$FREQ_RESET_HOUR" ]] && FREQ_RESET_HOUR="${DEFAULT_RESET_HOUR}"
+    [[ -z "$FREQ_SHOW_COUNT" ]] && FREQ_SHOW_COUNT="${DEFAULT_SHOW_COUNT}"
+    [[ -z "$FREQ_TRACK_TIME" ]] && FREQ_TRACK_TIME="${DEFAULT_TRACK_TIME}"
+    [[ -z "$FREQ_MIN_TIME" ]] && FREQ_MIN_TIME="${DEFAULT_MIN_TIME}"
+    [[ -z "$FREQ_TRACK_GIT" ]] && FREQ_TRACK_GIT="${DEFAULT_TRACK_GIT}"
+    [[ -z "$FREQ_SORT_BY" ]] && FREQ_SORT_BY="${DEFAULT_SORT_BY}"
 }
 
 # Save configuration
@@ -54,6 +64,8 @@ FREQ_RESET_HOUR="${FREQ_RESET_HOUR}"
 FREQ_SHOW_COUNT="${FREQ_SHOW_COUNT}"
 FREQ_TRACK_TIME="${FREQ_TRACK_TIME}"
 FREQ_MIN_TIME="${FREQ_MIN_TIME}"
+FREQ_TRACK_GIT="${FREQ_TRACK_GIT}"
+FREQ_SORT_BY="${FREQ_SORT_BY}"
 EOF
 }
 
@@ -71,6 +83,173 @@ _freq_dirs_format_time() {
     else
         echo "${secs}s"
     fi
+}
+
+# Track git commits
+_freq_dirs_track_git_commit() {
+    if [[ "$FREQ_TRACK_GIT" != "true" ]]; then
+        return
+    fi
+    
+    # Check if we're in a git repository
+    if ! git rev-parse --git-dir > /dev/null 2>&1; then
+        return
+    fi
+    
+    local current_dir="${PWD/#$HOME/~}"
+    local commit_hash=$(git rev-parse HEAD 2>/dev/null)
+    local commit_msg=$(git log -1 --pretty=%s 2>/dev/null)
+    local timestamp=$(date +%s)
+    
+    # Record commit
+    echo "${current_dir}|${commit_hash}|${timestamp}|${commit_msg}" >> "$FREQ_DIRS_GIT"
+    
+    # Update today's git count
+    if grep -q "^${current_dir}|" "$FREQ_DIRS_GIT_TODAY" 2>/dev/null; then
+        local count=$(grep "^${current_dir}|" "$FREQ_DIRS_GIT_TODAY" | cut -d'|' -f2)
+        local new_count=$((count + 1))
+        grep -v "^${current_dir}|" "$FREQ_DIRS_GIT_TODAY" > "${FREQ_DIRS_GIT_TODAY}.tmp" 2>/dev/null
+        echo "${current_dir}|${new_count}" >> "${FREQ_DIRS_GIT_TODAY}.tmp"
+        mv "${FREQ_DIRS_GIT_TODAY}.tmp" "$FREQ_DIRS_GIT_TODAY"
+    else
+        echo "${current_dir}|1" >> "$FREQ_DIRS_GIT_TODAY"
+    fi
+}
+
+# Get git commit count for a directory
+_freq_dirs_get_git_count() {
+    local dir="$1"
+    if [[ -f "$FREQ_DIRS_GIT_TODAY" ]]; then
+        grep "^${dir}|" "$FREQ_DIRS_GIT_TODAY" 2>/dev/null | cut -d'|' -f2 || echo "0"
+    else
+        echo "0"
+    fi
+}
+
+# Analyze git commit types
+_freq_dirs_analyze_commits() {
+    local temp_file=$(mktemp)
+    
+    # Keywords for categorization
+    local fix_keywords="fix fixed fixes bugfix hotfix patch bug resolve"
+    local feat_keywords="add added feat feature implement new create"
+    local test_keywords="test tests testing spec specs"
+    local refactor_keywords="refactor refactoring cleanup clean improve"
+    local docs_keywords="docs documentation readme comment comments"
+    local chore_keywords="chore update bump deps dependencies version"
+    
+    local fix_count=0
+    local feat_count=0
+    local test_count=0
+    local refactor_count=0
+    local docs_count=0
+    local chore_count=0
+    local other_count=0
+    
+    if [[ -s "$FREQ_DIRS_GIT" ]]; then
+        # Get today's commits
+        local today=$(date +%Y-%m-%d)
+        local today_timestamp=$(date -d "$today" +%s)
+        
+        while IFS='|' read -r dir hash timestamp msg; do
+            [[ -z "$timestamp" ]] && continue
+            [[ $timestamp -lt $today_timestamp ]] && continue
+            
+            local msg_lower=$(echo "$msg" | tr '[:upper:]' '[:lower:]')
+            local categorized=false
+            
+            for keyword in $fix_keywords; do
+                if [[ "$msg_lower" == *"$keyword"* ]]; then
+                    ((fix_count++))
+                    categorized=true
+                    break
+                fi
+            done
+            
+            if [[ "$categorized" == "false" ]]; then
+                for keyword in $feat_keywords; do
+                    if [[ "$msg_lower" == *"$keyword"* ]]; then
+                        ((feat_count++))
+                        categorized=true
+                        break
+                    fi
+                done
+            fi
+            
+            if [[ "$categorized" == "false" ]]; then
+                for keyword in $test_keywords; do
+                    if [[ "$msg_lower" == *"$keyword"* ]]; then
+                        ((test_count++))
+                        categorized=true
+                        break
+                    fi
+                done
+            fi
+            
+            if [[ "$categorized" == "false" ]]; then
+                for keyword in $refactor_keywords; do
+                    if [[ "$msg_lower" == *"$keyword"* ]]; then
+                        ((refactor_count++))
+                        categorized=true
+                        break
+                    fi
+                done
+            fi
+            
+            if [[ "$categorized" == "false" ]]; then
+                for keyword in $docs_keywords; do
+                    if [[ "$msg_lower" == *"$keyword"* ]]; then
+                        ((docs_count++))
+                        categorized=true
+                        break
+                    fi
+                done
+            fi
+            
+            if [[ "$categorized" == "false" ]]; then
+                for keyword in $chore_keywords; do
+                    if [[ "$msg_lower" == *"$keyword"* ]]; then
+                        ((chore_count++))
+                        categorized=true
+                        break
+                    fi
+                done
+            fi
+            
+            [[ "$categorized" == "false" ]] && ((other_count++))
+        done < "$FREQ_DIRS_GIT"
+        
+        local total_commits=$((fix_count + feat_count + test_count + refactor_count + docs_count + chore_count + other_count))
+        
+        if [[ $total_commits -gt 0 ]]; then
+            echo "📊 Git Activity Analysis:" > "$temp_file"
+            echo "  Total commits today: $total_commits" >> "$temp_file"
+            echo "" >> "$temp_file"
+            echo "  Activity breakdown:" >> "$temp_file"
+            
+            [[ $fix_count -gt 0 ]] && printf "    🐛 Fixes: %d commits (%d%%)\n" "$fix_count" $((fix_count * 100 / total_commits)) >> "$temp_file"
+            [[ $feat_count -gt 0 ]] && printf "    ✨ Features: %d commits (%d%%)\n" "$feat_count" $((feat_count * 100 / total_commits)) >> "$temp_file"
+            [[ $test_count -gt 0 ]] && printf "    🧪 Tests: %d commits (%d%%)\n" "$test_count" $((test_count * 100 / total_commits)) >> "$temp_file"
+            [[ $refactor_count -gt 0 ]] && printf "    🔧 Refactoring: %d commits (%d%%)\n" "$refactor_count" $((refactor_count * 100 / total_commits)) >> "$temp_file"
+            [[ $docs_count -gt 0 ]] && printf "    📚 Documentation: %d commits (%d%%)\n" "$docs_count" $((docs_count * 100 / total_commits)) >> "$temp_file"
+            [[ $chore_count -gt 0 ]] && printf "    🔨 Chores: %d commits (%d%%)\n" "$chore_count" $((chore_count * 100 / total_commits)) >> "$temp_file"
+            [[ $other_count -gt 0 ]] && printf "    📝 Other: %d commits (%d%%)\n" "$other_count" $((other_count * 100 / total_commits)) >> "$temp_file"
+            
+            # Find most active git project
+            echo "" >> "$temp_file"
+            if [[ -s "$FREQ_DIRS_GIT_TODAY" ]]; then
+                local most_active=$(sort -t'|' -k2 -rn "$FREQ_DIRS_GIT_TODAY" | head -1)
+                if [[ -n "$most_active" ]]; then
+                    local dir=$(echo "$most_active" | cut -d'|' -f1)
+                    local count=$(echo "$most_active" | cut -d'|' -f2)
+                    echo "  Most active project: $dir ($count commits)" >> "$temp_file"
+                fi
+            fi
+        fi
+    fi
+    
+    cat "$temp_file"
+    rm -f "$temp_file"
 }
 
 # Check if we need to rotate data (daily reset)
@@ -97,6 +276,9 @@ _freq_dirs_check_rotation() {
             cat "$FREQ_DIRS_SESSIONS" >> "${FREQ_DIRS_SESSIONS}.archive"
             > "$FREQ_DIRS_SESSIONS"
         fi
+        
+        # Reset git counts for today
+        > "$FREQ_DIRS_GIT_TODAY"
     fi
 }
 
@@ -196,15 +378,17 @@ _freq_dirs_generate_insights() {
         echo "" >> "$temp_file"
         
         # Top directories by time
-        echo "⏱️  Time Distribution:" >> "$temp_file"
-        sort -t'|' -k3 -rn "$FREQ_DIRS_TODAY" | head -5 | while IFS='|' read -r dir count time; do
-            [[ -z "$time" ]] && time=0
-            if [[ $time -gt 0 ]]; then
-                local percent=$((time * 100 / total_time))
-                printf "  %-40s %s (%d%%)\n" "$dir" "$(_freq_dirs_format_time $time)" "$percent" >> "$temp_file"
-            fi
-        done
-        echo "" >> "$temp_file"
+        if [[ $total_time -gt 0 ]]; then
+            echo "⏱️  Time Distribution:" >> "$temp_file"
+            sort -t'|' -k3 -rn "$FREQ_DIRS_TODAY" | head -5 | while IFS='|' read -r dir count time; do
+                [[ -z "$time" ]] && time=0
+                if [[ $time -gt 0 ]]; then
+                    local percent=$((time * 100 / total_time))
+                    printf "  %-40s %s (%d%%)\n" "$dir" "$(_freq_dirs_format_time $time)" "$percent" >> "$temp_file"
+                fi
+            done
+            echo "" >> "$temp_file"
+        fi
         
         # Session analysis
         if [[ -s "$FREQ_DIRS_SESSIONS" ]]; then
@@ -248,6 +432,13 @@ _freq_dirs_generate_insights() {
                 done
             fi
             rm -f "$patterns"
+            echo "" >> "$temp_file"
+        fi
+        
+        # Add git analytics
+        local git_analysis=$(_freq_dirs_analyze_commits)
+        if [[ -n "$git_analysis" ]]; then
+            echo "$git_analysis" >> "$temp_file"
         fi
     fi
     
@@ -264,7 +455,8 @@ _freq_dirs_get_merged_data() {
     if [[ -s "$FREQ_DIRS_TODAY" ]]; then
         while IFS='|' read -r dir count time; do
             [[ -z "$time" ]] && time=0
-            echo "${dir}|${count}|${time}|today" >> "$merged_file"
+            local git_count=$(_freq_dirs_get_git_count "$dir")
+            echo "${dir}|${count}|${time}|${git_count}|today" >> "$merged_file"
         done < "$FREQ_DIRS_TODAY"
     fi
     
@@ -273,13 +465,24 @@ _freq_dirs_get_merged_data() {
         while IFS='|' read -r dir count time; do
             [[ -z "$time" ]] && time=0
             if ! grep -q "^${dir}|" "$FREQ_DIRS_TODAY" 2>/dev/null; then
-                echo "${dir}|${count}|${time}|yesterday" >> "$merged_file"
+                echo "${dir}|${count}|${time}|0|yesterday" >> "$merged_file"
             fi
         done < "$FREQ_DIRS_YESTERDAY"
     fi
     
-    # Sort and return top N entries (by count, then by time)
-    sort -t'|' -k2 -rn "$merged_file" | head -n "$show_count"
+    # Sort based on configuration
+    case "$FREQ_SORT_BY" in
+        visits)
+            sort -t'|' -k2 -rn "$merged_file" | head -n "$show_count"
+            ;;
+        commits)
+            sort -t'|' -k4 -rn "$merged_file" | head -n "$show_count"
+            ;;
+        time|*)
+            sort -t'|' -k3 -rn "$merged_file" | head -n "$show_count"
+            ;;
+    esac
+    
     rm -f "$merged_file"
 }
 
@@ -298,6 +501,8 @@ freq() {
                 > "$FREQ_DIRS_SESSIONS"
                 > "$FREQ_DIRS_INSIGHTS"
                 > "$FREQ_DIRS_PATTERNS"
+                > "$FREQ_DIRS_GIT"
+                > "$FREQ_DIRS_GIT_TODAY"
                 date +%Y-%m-%d > "$FREQ_DIRS_LAST_RESET"
                 FREQ_CURRENT_DIR=""
                 FREQ_ENTER_TIME=""
@@ -325,6 +530,8 @@ freq() {
             echo "  Show count: ${FREQ_SHOW_COUNT} directories"
             echo "  Track time: ${FREQ_TRACK_TIME}"
             echo "  Min time: ${FREQ_MIN_TIME} seconds"
+            echo "  Track git: ${FREQ_TRACK_GIT}"
+            echo "  Sort by: ${FREQ_SORT_BY}"
             echo ""
             echo "Configure:"
             echo -n "  Enable auto-reset? (y/n) [${FREQ_AUTO_RESET}]: "
@@ -369,6 +576,22 @@ freq() {
                 fi
             fi
             
+            echo -n "  Enable git tracking? (y/n) [${FREQ_TRACK_GIT}]: "
+            read response
+            if [[ -n "$response" ]]; then
+                if [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]; then
+                    FREQ_TRACK_GIT="true"
+                else
+                    FREQ_TRACK_GIT="false"
+                fi
+            fi
+            
+            echo -n "  Sort by (visits/time/commits) [${FREQ_SORT_BY}]: "
+            read response
+            if [[ -n "$response" ]] && [[ "$response" == "visits" || "$response" == "time" || "$response" == "commits" ]]; then
+                FREQ_SORT_BY="$response"
+            fi
+            
             _freq_dirs_save_config
             echo ""
             echo "✅ Configuration saved!"
@@ -410,18 +633,25 @@ freq() {
     
     # Display and create aliases
     local i=1
-    while IFS='|' read -r dir count time period; do
+    while IFS='|' read -r dir count time git_count period; do
         local display_dir="$dir"
         local time_display=""
+        local git_display=""
         
         [[ -z "$time" ]] && time=0
+        [[ -z "$git_count" ]] && git_count=0
+        
         if [[ $time -gt 0 ]]; then
             time_display=" · $(_freq_dirs_format_time $time)"
         fi
         
+        if [[ $git_count -gt 0 ]]; then
+            git_display=" \033[93m[$git_count commits]\033[0m"
+        fi
+        
         if [[ "$period" == "yesterday" ]]; then
-            printf "  \033[36m[j%d]\033[0m %-40s \033[90m(%d visits%s yesterday)\033[0m\n" \
-                "$i" "$display_dir" "$count" "$time_display"
+            printf "  \033[36m[j%d]\033[0m %-35s \033[90m(%d visits%s yesterday)%s\033[0m\n" \
+                "$i" "$display_dir" "$count" "$time_display" "$git_display"
         else
             # Color code by time spent (longer = warmer)
             local color="33"  # Yellow default
@@ -433,8 +663,8 @@ freq() {
                 color="93"  # Light yellow for > 10 min
             fi
             
-            printf "  \033[36m[j%d]\033[0m %-40s \033[${color}m(%d visits%s today)\033[0m\n" \
-                "$i" "$display_dir" "$count" "$time_display"
+            printf "  \033[36m[j%d]\033[0m %-35s \033[${color}m(%d visits%s today)\033[0m%s\n" \
+                "$i" "$display_dir" "$count" "$time_display" "$git_display"
         fi
         
         # Create the jump alias dynamically
@@ -461,7 +691,7 @@ _freq_dirs_setup_aliases() {
     
     # Create aliases for top directories
     local i=1
-    while IFS='|' read -r dir count time period; do
+    while IFS='|' read -r dir count time git_count period; do
         eval "alias j${i}='cd \"${dir/#\~/$HOME}\"'"
         i=$((i + 1))
     done <<< "$merged_data"
@@ -474,10 +704,30 @@ _freq_dirs_exit() {
     fi
 }
 
+# Git post-commit hook wrapper
+_freq_dirs_git_wrapper() {
+    local git_cmd="$1"
+    shift
+    
+    # Run the actual git command
+    command git "$git_cmd" "$@"
+    local exit_code=$?
+    
+    # Track commit if successful
+    if [[ "$git_cmd" == "commit" ]] && [[ $exit_code -eq 0 ]]; then
+        _freq_dirs_track_git_commit
+    fi
+    
+    return $exit_code
+}
+
 # Hook into directory change
 autoload -U add-zsh-hook
 add-zsh-hook chpwd _freq_dirs_update
 add-zsh-hook zshexit _freq_dirs_exit
+
+# Create git alias to track commits
+alias git='_freq_dirs_git_wrapper'
 
 # Setup aliases on startup
 _freq_dirs_setup_aliases
