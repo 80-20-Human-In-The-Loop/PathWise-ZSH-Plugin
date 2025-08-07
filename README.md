@@ -7,7 +7,7 @@ PathWise helps you work faster by remembering the directories you visit most. Ju
 ## What PathWise Does
 
 PathWise watches where you work and helps you:
-- Jump to favorite folders with shortcuts like `j1`, `j2`, `j3`
+- Jump to favorite folders with shortcuts like `wj1`, `wj2`, `wj3` (w for "wise")
 - See how much time you spend in each directory
 - Track your git commits and understand your work patterns
 - Learn about your workflow to work better
@@ -64,18 +64,21 @@ cd ~/projects
 
 Now see your most visited directories:
 ```bash
-freq
+wfreq
 ```
 
 You will see something like this:
 ```
-📍 Your frequent directories:
+PathWise Directory Frequency:
 
-  [j1] ~/projects          (3 visits · 15m 30s today)
-  [j2] ~/Documents         (2 visits · 5m 12s today)
-  [j3] ~/Downloads         (1 visit · 2m 5s today)
+  [wj1] ~/projects          
+      ├─ 3 visits · 15m 30s today
+  [wj2] ~/Documents         
+      ├─ 2 visits · 5m 12s today
+  [wj3] ~/Downloads         
+      ├─ 1 visit · 2m 5s today
 
-💡 Commands: freq | freq --insights | freq --reset | freq --config
+💡 Commands: wfreq | wfreq --insights | wfreq --reset | wfreq --config
 ```
 
 ### Step 3: Use Jump Shortcuts
@@ -83,16 +86,16 @@ You will see something like this:
 PathWise creates shortcuts for your top 5 directories:
 
 ```bash
-j1  # Jump to your #1 most visited directory
-j2  # Jump to your #2 most visited directory
-j3  # Jump to your #3 most visited directory
+wj1  # Jump to your #1 most visited directory (w for "wise")
+wj2  # Jump to your #2 most visited directory
+wj3  # Jump to your #3 most visited directory
 ```
 
 These shortcuts update as your habits change!
 
 ## Configuration Guide
 
-PathWise has settings you can change. Run `freq --config` to see this menu:
+PathWise has settings you can change. Run `wfreq --config` to see this menu:
 
 ```
 🎨 PathWise Configuration
@@ -121,7 +124,7 @@ Enable auto-reset? (current: true):
    - Only works if auto-reset is on
 
 3. **Show count** (1-10)
-   - How many directories to show in `freq` command
+   - How many directories to show in `wfreq` command
    - More directories = more jump shortcuts
 
 4. **Track time** (on/off)
@@ -145,14 +148,15 @@ Enable auto-reset? (current: true):
 When you enable git tracking, PathWise analyzes your commits and shows what type of work you do:
 
 ```bash
-freq  # With git tracking enabled
+wfreq  # With git tracking enabled
 ```
 
 Shows:
 ```
-📍 Your frequent directories:
+PathWise Directory Frequency:
 
-  [j1] ~/projects/my-app (15 visits · 2h 34m today) [25 commits]
+  [wj1] ~/projects/my-app
+      ├─ 15 visits · 2h 34m today [25 commits]
        📊 Git Activity:
        🐛 Fixes: 8 commits (32%) "bugfix"
        ✨ Features: 6 commits (24%) "add"
@@ -180,23 +184,23 @@ PathWise recognizes 11 types of commits:
 ### Basic Commands
 
 ```bash
-freq              # Show your top directories
-freq --help       # See all commands
-freq --insights   # Show detailed analytics
-freq --reset      # Clear all data and start fresh
-freq --config     # Change settings
+wfreq              # Show your top directories (w for "wise")
+wfreq --help       # See all commands
+wfreq --insights   # Show detailed analytics
+wfreq --reset      # Clear all data and start fresh
+wfreq --config     # Change settings
 ```
 
 ### Understanding the Display
 
-When you run `freq`, you see:
+When you run `wfreq`, you see:
 ```
-[j1] ~/projects/app (10 visits · 1h 20m today)
- ↑    ↑              ↑           ↑
- │    │              │           └─ Time spent today
- │    │              └─ How many times visited
- │    └─ Directory path
- └─ Shortcut to jump there
+[wj1] ~/projects/app
+  ├─ 10 visits · 1h 20m today
+  ↑    ↑              ↑
+  │    │              └─ Time spent today
+  │    └─ How many times visited
+  └─ Jump shortcut (w for "wise")
 ```
 
 ### Productivity Insights
@@ -204,7 +208,7 @@ When you run `freq`, you see:
 See detailed information about your work:
 
 ```bash
-freq --insights
+wfreq --insights
 ```
 
 This shows:
@@ -245,7 +249,7 @@ If you need to remove PathWise, we have a safe uninstall script that:
 The uninstaller removes:
 - PathWise plugin directory
 - PathWise entries in .zshrc
-- Jump shortcuts (j1, j2, etc.)
+- Jump shortcuts (wj1, wj2, etc.)
 - Configuration settings (optional)
 - Navigation history (optional)
 
@@ -271,13 +275,13 @@ freq --help
 
 ### Jump Shortcuts Not Working?
 
-First visit some directories, then run `freq` to create shortcuts.
+First visit some directories, then run `wfreq` to create shortcuts.
 
 ### Time Tracking Not Working?
 
 1. Check if time tracking is enabled:
 ```bash
-freq --config
+wfreq --config
 ```
 
 2. Make sure you stay in directories longer than the minimum time (default: 5 seconds)
@@ -286,7 +290,7 @@ freq --config
 
 Check your auto-reset settings:
 ```bash
-freq --config
+wfreq --config
 ```
 Make sure auto-reset is "on" and reset hour is correct.
 

@@ -658,47 +658,127 @@ _freq_dirs_get_merged_data() {
 }
 
 PATHWISE_TIPS=(
-    "Use 'git blame <file>' to see who changed each line and when"
-    "Use 'cd **/<tab>' to fuzzy search for directories recursively"
-    "Sort by 'time' to see where you spend most time, or 'visits' for frequency"
-    "Set CDPATH to add common base directories for quick navigation"
-    "Set up git aliases: 'git config --global alias.co checkout'"
-    "Use 'git log --oneline --graph' for a visual commit history"
-    "Use 'git reset HEAD~1' to undo the last commit (keeping changes)"
-    "Use 'fc' to edit and re-run the last command in your editor"
-    "Use 'chmod +x file' to make a file executable quickly"
-    "Create here-documents: 'cat << EOF > file.txt'"
-    "Use 'grep -r \"pattern\" .' to search recursively in current directory"
-    "Use parameter expansion: \${var:-default} for default values"
-    "Your jump shortcuts update dynamically as your habits change throughout the day"
-    "The 'tree' command shows directory structure visually (install if needed)"
-    "Use virtual environments for Python projects to avoid conflicts"
-    "Use 'ps aux | grep <name>' to find processes, 'kill -9 <pid>' to force stop"
-    "Press Ctrl+R to search through your command history interactively"
-    "Configure minimum time to avoid tracking quick directory traversals"
-    "Create permanent aliases in ~/.zshrc for your common commands"
-    "The 'tee' command shows output and saves it: 'ls | tee output.txt'"
-    "Keep a 'notes.md' file in project roots for quick thoughts"
-    "Automate repetitive tasks with shell scripts or aliases"
-    "PathWise tracks both visits and time - giving you complete navigation insights"
-    "Press Alt+. to insert the last argument from previous command"
-    "Use 'tail -f logfile' to watch a log file in real-time"
-    "Create multiple directories at once: 'mkdir -p parent/child/grandchild'"
-    "Keep your home directory clean - use subdirectories for organization"
-    "Check 'freq --insights' weekly to understand your productivity patterns"
-    "Use 'find . -name \"*.txt\" -mtime -7' to find files modified in last 7 days"
-    "Set up zsh hooks: add_zsh_hook for preexec, precmd, chpwd"
+    "pathwise:Use 'j1' through 'j5' to jump to your most visited directories instantly"
+    "pathwise:Run 'freq --insights' to see detailed analytics about your navigation patterns"
+    "pathwise:PathWise tracks time automatically - stay in a directory 5+ seconds to record it"
+    "pathwise:Use 'freq --config' to customize tracking settings and display preferences"
+    "pathwise:Your jump shortcuts update dynamically as your habits change throughout the day"
+    "pathwise:Run 'freq --reset' to clear all data and start fresh with new tracking"
+    "pathwise:PathWise rotates data daily at midnight - yesterday becomes your fallback"
+    "pathwise:Enable git tracking to see what type of work you do in each directory"
+    "pathwise:Sort by 'time' to see where you spend most time, or 'visits' for frequency"
+    "pathwise:PathWise learns your patterns - the more you navigate, the smarter it gets"
+    "pathwise:Check 'freq --insights' weekly to understand your productivity patterns"
+    "pathwise:Jump shortcuts persist across terminal sessions until your habits change"
+    "pathwise:Use PathWise data to identify time sinks and optimize your workflow"
+    "pathwise:PathWise tracks both visits and time - giving you complete navigation insights"
+    "pathwise:Configure minimum time to avoid tracking quick directory traversals"
+    "zsh:Use 'cd -' to quickly jump back to your previous directory"
+    "zsh:Press Ctrl+R to search through your command history interactively"
+    "zsh:Use '!!' to repeat the last command, or 'sudo !!' to run it with sudo"
+    "zsh:Tab completion works for commands, files, and even git branches"
+    "zsh:Use 'cd **/<tab>' to fuzzy search for directories recursively"
+    "zsh:Create permanent aliases in ~/.zshrc for your common commands"
+    "zsh:Use 'which <command>' to find where a command is located"
+    "zsh:Press Alt+. to insert the last argument from previous command"
+    "zsh:Use 'dirs -v' to see your directory stack, 'cd ~N' to jump to entry N"
+    "zsh:Enable case-insensitive completion with 'zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'"
+    "zsh:Use 'bindkey' to see all keyboard shortcuts in your current shell"
+    "zsh:Press Ctrl+L to clear the screen (faster than typing 'clear')"
+    "zsh:Use 'fc' to edit and re-run the last command in your editor"
+    "zsh:Set CDPATH to add common base directories for quick navigation"
+    "zsh:Use parameter expansion: \${var:-default} for default values"
+    "linux:Use 'ls -lah' to see all files with human-readable sizes"
+    "linux:Press Ctrl+Z to suspend a process, 'bg' to background it, 'fg' to foreground"
+    "linux:Use 'df -h' to check disk space, 'du -sh *' for directory sizes"
+    "linux:The 'tree' command shows directory structure visually (install if needed)"
+    "linux:Use 'grep -r \"pattern\" .' to search recursively in current directory"
+    "linux:Press Ctrl+D to logout or exit (cleaner than typing 'exit')"
+    "linux:Use 'ps aux | grep <name>' to find processes, 'kill -9 <pid>' to force stop"
+    "linux:The 'watch' command repeats any command periodically: 'watch -n 2 ls'"
+    "linux:Use 'chmod +x file' to make a file executable quickly"
+    "linux:Redirect errors with '2>' or both output and errors with '&>'"
+    "linux:Use 'find . -name \"*.txt\" -mtime -7' to find files modified in last 7 days"
+    "linux:The 'tee' command shows output and saves it: 'ls | tee output.txt'"
+    "linux:Use 'tail -f logfile' to watch a log file in real-time"
+    "linux:Create multiple directories at once: 'mkdir -p parent/child/grandchild'"
+    "linux:Use 'ln -s target link' to create symbolic links for easy access"
+    "productivity:Organize projects in a consistent directory structure for faster navigation"
+    "productivity:Use descriptive directory names - future you will thank present you"
+    "productivity:Keep your home directory clean - use subdirectories for organization"
+    "productivity:Create a ~/tmp directory for temporary work that you clean regularly"
+    "productivity:Use version control (git) in all project directories for safety"
+    "productivity:Batch similar tasks together to reduce context switching"
+    "productivity:Review your PathWise insights weekly to optimize your workflow"
+    "productivity:Set up project templates to standardize new project creation"
+    "productivity:Use meaningful commit messages - they're documentation for future you"
+    "productivity:Take breaks - productivity isn't about time spent but work accomplished"
+    "productivity:Document your setup and workflows in a personal knowledge base"
+    "productivity:Automate repetitive tasks with shell scripts or aliases"
+    "productivity:Use virtual environments for Python projects to avoid conflicts"
+    "productivity:Keep a 'notes.md' file in project roots for quick thoughts"
+    "productivity:Learn keyboard shortcuts for your most-used applications"
+    "git:Use 'git status' frequently to understand your repository state"
+    "git:Run 'git diff --staged' to review changes before committing"
+    "git:Use 'git log --oneline --graph' for a visual commit history"
+    "git:Create meaningful branch names: feature/what-it-does"
+    "git:Use 'git stash' to temporarily save work when switching contexts"
+    "git:Run 'git commit --amend' to fix the last commit message"
+    "git:Use 'git reset HEAD~1' to undo the last commit (keeping changes)"
+    "git:Set up git aliases: 'git config --global alias.co checkout'"
+    "git:Use 'git blame <file>' to see who changed each line and when"
+    "git:Run 'git clean -fd' to remove untracked files and directories"
+    "git:Use '.gitignore' to exclude files from version control"
+    "git:Create atomic commits - each commit should do one thing"
+    "git:Use 'git bisect' to find which commit introduced a bug"
+    "git:Run 'git reflog' to recover lost commits or branches"
+    "git:Tag releases: 'git tag -a v1.0.0 -m \"Version 1.0.0\"'"
+    "advanced:Use process substitution: 'diff <(ls dir1) <(ls dir2)'"
+    "advanced:Chain commands: '&&' for success, '||' for failure, ';' for always"
+    "advanced:Use brace expansion: 'cp file.{txt,bak}' copies file.txt to file.bak"
+    "advanced:Export functions in zsh: 'typeset -f -x function_name'"
+    "advanced:Use 'exec' to replace the current shell with a command"
+    "advanced:Create here-documents: 'cat << EOF > file.txt'"
+    "advanced:Use extended globbing: 'setopt EXTENDED_GLOB' for advanced patterns"
+    "advanced:Redirect stdout and stderr separately: 'cmd 1>out.txt 2>err.txt'"
+    "advanced:Use coprocesses for bidirectional communication with commands"
+    "advanced:Set up zsh hooks: add_zsh_hook for preexec, precmd, chpwd"
+    "advanced:Use parameter expansion for string manipulation: \${var%suffix}"
+    "advanced:Create associative arrays: 'typeset -A hash' in zsh"
+    "advanced:Use 'zmodload' to load additional zsh modules for extra features"
+    "advanced:Profile shell startup: 'zsh -x' to debug slow initialization"
+    "advanced:Use 'compdef' to create custom completions for your functions"
 )
 
 
-# Function to get a random tip
+# Function to get a random tip with category
 _freq_dirs_get_random_tip() {
     local num_tips=${#PATHWISE_TIPS[@]}
-    local random_index=$((RANDOM % num_tips))
-    echo "${PATHWISE_TIPS[$random_index]}"
+    # Seed RANDOM with current time for better randomization  
+    RANDOM=$SECONDS
+    # Zsh arrays are 1-indexed
+    local random_index=$((RANDOM % num_tips + 1))
+    local tip_with_category="${PATHWISE_TIPS[$random_index]}"
+    
+    # Split category and tip
+    local category="${tip_with_category%%:*}"
+    local tip="${tip_with_category#*:}"
+    
+    # Capitalize and format category name
+    case "$category" in
+        pathwise) category="PathWise" ;;
+        zsh) category="Zsh" ;;
+        linux) category="Linux" ;;
+        productivity) category="Productivity" ;;
+        git) category="Git" ;;
+        advanced) category="Advanced" ;;
+        *) category="${(C)category}" ;;  # Capitalize first letter
+    esac
+    
+    echo "${category} Tip: ${tip}"
 }
-# Main freq function with argument parsing
-freq() {
+# Main wfreq function with argument parsing
+wfreq() {
     _freq_dirs_load_config
     
     # Parse arguments
@@ -854,14 +934,14 @@ freq() {
             echo "PathWise - Be Wise About Your Paths 🗺️"
             echo ""
             echo "Usage:"
-            echo "  freq              Show top directories"
-            echo "  freq --insights   Show productivity insights"
-            echo "  freq --reset      Reset all frequency data"
-            echo "  freq --config     Configure settings"
-            echo "  freq --help       Show this help"
+            echo "  wfreq              Show top directories"
+            echo "  wfreq --insights   Show productivity insights"
+            echo "  wfreq --reset      Reset all frequency data"
+            echo "  wfreq --config     Configure settings"
+            echo "  wfreq --help       Show this help"
             echo ""
             echo "Jump shortcuts:"
-            echo "  j1-j${FREQ_SHOW_COUNT}            Jump to your top directories"
+            echo "  wj1-wj${FREQ_SHOW_COUNT}            Jump to your top directories"
             echo ""
             echo "Philosophy:"
             echo "  80% automation, 20% human wisdom, 100% growth 🚀"
@@ -899,7 +979,7 @@ freq() {
         fi
         
         if [[ $git_count -gt 0 ]]; then
-            git_display=" [$git_count commits]"
+            git_display="[$git_count commits]"
         fi
         
         # Two-line format for better readability
@@ -952,18 +1032,18 @@ freq() {
         fi
         
         # Create the jump alias dynamically
-        eval "alias j${i}='cd \"${dir/#\~/$HOME}\"'"
+        eval "alias wj${i}='cd \"${dir/#\~/$HOME}\"'"
         
         i=$((i + 1))
     done <<< "$merged_data"
     
     echo ""
-    echo "💡 Commands: freq | freq --insights | freq --reset | freq --config"
+    echo "💡 Commands: wfreq | wfreq --insights | wfreq --reset | wfreq --config"
     echo ""
     
     # Display a random tip
     local tip=$(_freq_dirs_get_random_tip)
-    echo "💭 Tip: $tip"
+    echo "💭 $tip"
     echo ""
 }
 
@@ -981,7 +1061,7 @@ _freq_dirs_setup_aliases() {
     # Create aliases for top directories
     local i=1
     while IFS='|' read -r dir count time git_count period; do
-        eval "alias j${i}='cd \"${dir/#\~/$HOME}\"'"
+        eval "alias wj${i}='cd \"${dir/#\~/$HOME}\"'"
         i=$((i + 1))
     done <<< "$merged_data"
 }

@@ -719,19 +719,18 @@ _freq_dirs_get_merged_data() {
 
 def generate_tips_array():
     """Generate shell array of tips for random selection"""
-    # Flatten all tips into a single list with category prefix
-    all_tips = []
+    # Create tips with category prefixes
+    categorized_tips = []
     for category, tips_list in TIPS.items():
         for tip in tips_list:
             # Escape quotes and special characters for shell
             escaped_tip = tip.replace('"', '\\"').replace('$', '\\$').replace('`', '\\`')
-            all_tips.append(escaped_tip)
+            # Add category prefix
+            categorized_tips.append(f"{category}:{escaped_tip}")
     
-    # Select 30 random tips to include in the shell script
-    selected_tips = random.sample(all_tips, min(30, len(all_tips)))
-    
+    # Include ALL tips for true randomization at runtime
     tips_array = 'PATHWISE_TIPS=(\n'
-    for tip in selected_tips:
+    for tip in categorized_tips:
         tips_array += f'    "{tip}"\n'
     tips_array += ')\n'
     
@@ -754,14 +753,34 @@ def generate_freq_command():
     return f'''
 {tips_array}
 
-# Function to get a random tip
+# Function to get a random tip with category
 _freq_dirs_get_random_tip() {{
     local num_tips=${{#PATHWISE_TIPS[@]}}
-    local random_index=$((RANDOM % num_tips))
-    echo "${{PATHWISE_TIPS[$random_index]}}"
+    # Seed RANDOM with current time for better randomization  
+    RANDOM=$SECONDS
+    # Zsh arrays are 1-indexed
+    local random_index=$((RANDOM % num_tips + 1))
+    local tip_with_category="${{PATHWISE_TIPS[$random_index]}}"
+    
+    # Split category and tip
+    local category="${{tip_with_category%%:*}}"
+    local tip="${{tip_with_category#*:}}"
+    
+    # Capitalize and format category name
+    case "$category" in
+        pathwise) category="PathWise" ;;
+        zsh) category="Zsh" ;;
+        linux) category="Linux" ;;
+        productivity) category="Productivity" ;;
+        git) category="Git" ;;
+        advanced) category="Advanced" ;;
+        *) category="${{(C)category}}" ;;  # Capitalize first letter
+    esac
+    
+    echo "${{category}} Tip: ${{tip}}"
 }}
-# Main freq function with argument parsing
-freq() {{
+# Main wfreq function with argument parsing
+wfreq() {{
     _freq_dirs_load_config
     
     # Parse arguments
@@ -917,14 +936,14 @@ freq() {{
             echo "PathWise - Be Wise About Your Paths 🗺️"
             echo ""
             echo "Usage:"
-            echo "  freq              Show top directories"
-            echo "  freq --insights   Show productivity insights"
-            echo "  freq --reset      Reset all frequency data"
-            echo "  freq --config     Configure settings"
-            echo "  freq --help       Show this help"
+            echo "  wfreq              Show top directories"
+            echo "  wfreq --insights   Show productivity insights"
+            echo "  wfreq --reset      Reset all frequency data"
+            echo "  wfreq --config     Configure settings"
+            echo "  wfreq --help       Show this help"
             echo ""
             echo "Jump shortcuts:"
-            echo "  j1-j${{FREQ_SHOW_COUNT}}            Jump to your top directories"
+            echo "  wj1-wj${{FREQ_SHOW_COUNT}}            Jump to your top directories"
             echo ""
             echo "Philosophy:"
             echo "  80% automation, 20% human wisdom, 100% growth 🚀"
@@ -966,7 +985,7 @@ freq() {{
         fi
         
         # Two-line format for better readability
-        printf "  \033[36m[j%d]\033[0m %s\n" "$i" "$display_dir"
+        printf "  \033[36m[wj%d]\033[0m %s\n" "$i" "$display_dir"
         
         if [[ "$period" == "yesterday" ]]; then
             if [[ -n "$git_display" ]]; then
@@ -1014,18 +1033,18 @@ freq() {{
         fi
         
         # Create the jump alias dynamically
-        eval "alias j${{i}}='cd \\"${{dir/#\\~/$HOME}}\\"'"
+        eval "alias wj${{i}}='cd \\"${{dir/#\\~/$HOME}}\\"'"
         
         i=$((i + 1))
     done <<< "$merged_data"
     
     echo ""
-    echo "💡 Commands: freq | freq --insights | freq --reset | freq --config"
+    echo "💡 Commands: wfreq | wfreq --insights | wfreq --reset | wfreq --config"
     echo ""
     
     # Display a random tip
     local tip=$(_freq_dirs_get_random_tip)
-    echo "💭 Tip: $tip"
+    echo "💭 $tip"
     echo ""
 }}
 '''
@@ -1047,7 +1066,7 @@ _freq_dirs_setup_aliases() {
     # Create aliases for top directories
     local i=1
     while IFS='|' read -r dir count time git_count period; do
-        eval "alias j${i}='cd \\"${dir/#\\~/$HOME}\\"'"
+        eval "alias wj${i}='cd \\"${dir/#\\~/$HOME}\\"'"
         i=$((i + 1))
     done <<< "$merged_data"
 }
