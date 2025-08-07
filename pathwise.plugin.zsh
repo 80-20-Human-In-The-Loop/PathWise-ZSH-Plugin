@@ -133,17 +133,17 @@ _freq_dirs_categorize_commit() {
     local best_score=0
     
     # Keywords for categorization (priority-ordered)
-    local revert_keywords="revert rollback undo back out backout rewind restore reset"
-    local fix_keywords="fix fixed fixes bugfix hotfix patch bug resolve"
-    local feat_keywords="feat feature add added adds new implement implemented"
-    local perf_keywords="perf performance optimize optimized optimization faster speed speedup"
-    local refactor_keywords="refactor refactored refactoring restructure rewrite rework simplify extract"
-    local test_keywords="test tests testing spec specs coverage unit integration"
-    local build_keywords="build compile bundle webpack rollup vite make cmake"
-    local ci_keywords="ci cd pipeline github actions actions travis jenkins circle"
-    local docs_keywords="docs documentation readme comment comments javadoc jsdoc docstring"
-    local style_keywords="style format formatting lint linting prettier eslint pylint"
-    local chore_keywords="chore update updated upgrade bump deps dependencies dependency"
+    local revert_keywords="revert rollback undo back out backout rewind restore reset reverse unmerge"
+    local fix_keywords="fix fixed fixes bugfix hotfix patch bug resolve resolved resolves solved solve issue error crash broken fault mistake correct repair handle prevent avoid typo oops"
+    local feat_keywords="feat feature add added adds new implement implemented introduce introduced create created enhance enhanced extend support enable allow integrate develop include provide setup"
+    local perf_keywords="perf performance optimize optimized optimization faster speed speedup improve boost accelerate efficient reduce decreased cache lazy quick enhance performance reduce memory reduce time"
+    local refactor_keywords="refactor refactored refactoring restructure rewrite rework simplify extract move moved rename renamed reorganize clean cleanup improve decouple abstract consolidate deduplicate modularize split"
+    local test_keywords="test tests testing spec specs coverage unit integration e2e jest pytest mock stub fixture assertion expect should verify validate check ensure prove tdd bdd"
+    local build_keywords="build compile bundle webpack rollup vite make cmake gradle maven npm yarn pnpm package dist transpile babel typescript tsc esbuild swc minify uglify compress"
+    local ci_keywords="ci cd pipeline github actions actions travis jenkins circle circleci deploy deployment release publish docker kubernetes k8s helm terraform ansible workflow automation"
+    local docs_keywords="docs documentation readme comment comments javadoc jsdoc docstring api doc guide tutorial example clarify explain describe document wiki changelog notes annotation usage"
+    local style_keywords="style format formatting lint linting prettier eslint pylint rubocop whitespace indent indentation semicolon quotes spacing code style convention pep8 black gofmt rustfmt standardize"
+    local chore_keywords="chore update updated upgrade bump deps dependencies dependency version maintain routine housekeeping misc minor tweak adjust modify prepare setup config configure init bootstrap"
     
     # Check each category and calculate scores
     local categories=(revert fix feat perf refactor test build ci docs style chore)

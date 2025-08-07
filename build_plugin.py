@@ -10,7 +10,8 @@ import random
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from python.constants.colors import PathWiseColors, ANSIColor
-from python.logic.git_tracker import COMMIT_CATEGORIES, get_category_keywords_for_shell, get_random_keyword_suggestions
+from python.constants.git_tracker import COMMIT_CATEGORIES
+from python.logic.git_tracker import get_category_keywords_for_shell, get_random_keyword_suggestions
 
 def generate_header():
     """Generate plugin header with description"""
@@ -131,7 +132,7 @@ def generate_git_functions():
     # Build the keyword definitions
     keyword_defs = []
     for category in ['revert', 'fix', 'feat', 'perf', 'refactor', 'test', 'build', 'ci', 'docs', 'style', 'chore']:
-        keywords = ' '.join(COMMIT_CATEGORIES[category]['keywords'][:8])  # First 8 keywords
+        keywords = ' '.join(COMMIT_CATEGORIES[category]['keywords'])  # Include ALL keywords
         keyword_defs.append(f'    local {category}_keywords="{keywords}"')
     
     # Get random suggestions for example

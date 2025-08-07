@@ -1,123 +1,13 @@
 """
 Git Commit Tracking and Categorization Logic
-Priority-based intelligent commit categorization with comprehensive keywords
+Functions for intelligent commit categorization and keyword suggestions
 """
 
 import random
 from typing import Dict, List, Tuple
 
-# Commit categories with priority and keywords
-# Higher priority = more important category
-COMMIT_CATEGORIES = {
-    'revert': {
-        'priority': 100,
-        'emoji': '⏪',
-        'keywords': [
-            'revert', 'rollback', 'undo', 'back out', 'backout', 'rewind',
-            'restore', 'reset', 'reverse', 'unmerge'
-        ]
-    },
-    'fix': {
-        'priority': 90,
-        'emoji': '🐛',
-        'keywords': [
-            'fix', 'fixed', 'fixes', 'bugfix', 'hotfix', 'patch', 'bug', 
-            'resolve', 'resolved', 'resolves', 'solved', 'solve', 'issue',
-            'error', 'crash', 'broken', 'fault', 'mistake', 'correct',
-            'repair', 'handle', 'prevent', 'avoid', 'typo', 'oops'
-        ]
-    },
-    'feat': {
-        'priority': 80,
-        'emoji': '✨',
-        'keywords': [
-            'feat', 'feature', 'add', 'added', 'adds', 'new', 'implement',
-            'implemented', 'introduce', 'introduced', 'create', 'created',
-            'enhance', 'enhanced', 'extend', 'support', 'enable', 'allow',
-            'integrate', 'develop', 'include', 'provide', 'setup'
-        ]
-    },
-    'perf': {
-        'priority': 70,
-        'emoji': '⚡',
-        'keywords': [
-            'perf', 'performance', 'optimize', 'optimized', 'optimization',
-            'faster', 'speed', 'speedup', 'improve', 'boost', 'accelerate',
-            'efficient', 'reduce', 'decreased', 'cache', 'lazy', 'quick',
-            'enhance performance', 'reduce memory', 'reduce time'
-        ]
-    },
-    'refactor': {
-        'priority': 60,
-        'emoji': '🔧',
-        'keywords': [
-            'refactor', 'refactored', 'refactoring', 'restructure', 'rewrite',
-            'rework', 'simplify', 'extract', 'move', 'moved', 'rename',
-            'renamed', 'reorganize', 'clean', 'cleanup', 'improve', 'decouple',
-            'abstract', 'consolidate', 'deduplicate', 'modularize', 'split'
-        ]
-    },
-    'test': {
-        'priority': 50,
-        'emoji': '🧪',
-        'keywords': [
-            'test', 'tests', 'testing', 'spec', 'specs', 'coverage',
-            'unit', 'integration', 'e2e', 'jest', 'pytest', 'mock',
-            'stub', 'fixture', 'assertion', 'expect', 'should', 'verify',
-            'validate', 'check', 'ensure', 'prove', 'tdd', 'bdd'
-        ]
-    },
-    'build': {
-        'priority': 40,
-        'emoji': '📦',
-        'keywords': [
-            'build', 'compile', 'bundle', 'webpack', 'rollup', 'vite',
-            'make', 'cmake', 'gradle', 'maven', 'npm', 'yarn', 'pnpm',
-            'package', 'dist', 'transpile', 'babel', 'typescript', 'tsc',
-            'esbuild', 'swc', 'minify', 'uglify', 'compress'
-        ]
-    },
-    'ci': {
-        'priority': 30,
-        'emoji': '🔄',
-        'keywords': [
-            'ci', 'cd', 'pipeline', 'github actions', 'actions', 'travis',
-            'jenkins', 'circle', 'circleci', 'deploy', 'deployment',
-            'release', 'publish', 'docker', 'kubernetes', 'k8s', 'helm',
-            'terraform', 'ansible', 'workflow', 'automation'
-        ]
-    },
-    'docs': {
-        'priority': 20,
-        'emoji': '📚',
-        'keywords': [
-            'docs', 'documentation', 'readme', 'comment', 'comments',
-            'javadoc', 'jsdoc', 'docstring', 'api doc', 'guide', 'tutorial',
-            'example', 'clarify', 'explain', 'describe', 'document',
-            'wiki', 'changelog', 'notes', 'annotation', 'usage'
-        ]
-    },
-    'style': {
-        'priority': 10,
-        'emoji': '💅',
-        'keywords': [
-            'style', 'format', 'formatting', 'lint', 'linting', 'prettier',
-            'eslint', 'pylint', 'rubocop', 'whitespace', 'indent', 'indentation',
-            'semicolon', 'quotes', 'spacing', 'code style', 'convention',
-            'pep8', 'black', 'gofmt', 'rustfmt', 'standardize'
-        ]
-    },
-    'chore': {
-        'priority': 5,
-        'emoji': '🔨',
-        'keywords': [
-            'chore', 'update', 'updated', 'upgrade', 'bump', 'deps',
-            'dependencies', 'dependency', 'version', 'maintain', 'routine',
-            'housekeeping', 'misc', 'minor', 'tweak', 'adjust', 'modify',
-            'prepare', 'setup', 'config', 'configure', 'init', 'bootstrap'
-        ]
-    }
-}
+# Import constants
+from python.constants.git_tracker import COMMIT_CATEGORIES, DEFAULT_CATEGORY, DEFAULT_EMOJI
 
 def categorize_commit(commit_message: str) -> str:
     """
@@ -148,7 +38,7 @@ def categorize_commit(commit_message: str) -> str:
     if category_scores:
         return max(category_scores, key=category_scores.get)
     
-    return 'other'
+    return DEFAULT_CATEGORY
 
 def get_random_keyword_suggestions(num_suggestions: int = 3) -> List[Tuple[str, str, str]]:
     """
@@ -186,8 +76,8 @@ def get_category_keywords_for_shell() -> Dict[str, str]:
     """
     result = {}
     for category, info in COMMIT_CATEGORIES.items():
-        # Only include commonly used keywords (first 8 or so)
-        keywords = info['keywords'][:8]
+        # Include ALL keywords for accurate categorization
+        keywords = info['keywords']
         result[category] = ' '.join(keywords)
     
     return result
@@ -202,8 +92,8 @@ def get_categories_for_shell() -> str:
     lines = []
     
     for category, info in COMMIT_CATEGORIES.items():
-        # Use first 8 keywords for shell (to keep it manageable)
-        keywords = ' '.join(info['keywords'][:8])
+        # Include ALL keywords for accurate categorization
+        keywords = ' '.join(info['keywords'])
         var_name = f"{category}_keywords"
         lines.append(f'    local {var_name}="{keywords}"')
     
@@ -253,7 +143,7 @@ if __name__ == "__main__":
     print("-" * 50)
     for commit in test_commits:
         category = categorize_commit(commit)
-        emoji = COMMIT_CATEGORIES.get(category, {}).get('emoji', '📝')
+        emoji = COMMIT_CATEGORIES.get(category, {}).get('emoji', DEFAULT_EMOJI)
         print(f"{emoji} {category:10} | {commit}")
     
     print("\n" + "=" * 50)
