@@ -4,12 +4,12 @@
 
 set -e
 
-BOLD='\033[1m'
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
+BOLD=$'\033[1m'
+GREEN=$'\033[0;32m'
+BLUE=$'\033[0;34m'
+YELLOW=$'\033[1;33m'
+RED=$'\033[0;31m'
+NC=$'\033[0m' # No Color
 
 echo -e "${BOLD}${BLUE}🗺️  PathWise Uninstaller${NC}"
 echo -e "${BOLD}Removing PathWise from your system${NC}"
