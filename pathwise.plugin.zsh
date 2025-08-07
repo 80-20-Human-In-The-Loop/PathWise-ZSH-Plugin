@@ -126,23 +126,69 @@ _freq_dirs_get_git_count() {
     fi
 }
 
+# Categorize commit with priority-based scoring
+_freq_dirs_categorize_commit() {
+    local msg_lower="$1"
+    local best_category="other"
+    local best_score=0
+    
+    # Keywords for categorization (priority-ordered)
+    local revert_keywords="revert rollback undo back out backout rewind restore reset"
+    local fix_keywords="fix fixed fixes bugfix hotfix patch bug resolve"
+    local feat_keywords="feat feature add added adds new implement implemented"
+    local perf_keywords="perf performance optimize optimized optimization faster speed speedup"
+    local refactor_keywords="refactor refactored refactoring restructure rewrite rework simplify extract"
+    local test_keywords="test tests testing spec specs coverage unit integration"
+    local build_keywords="build compile bundle webpack rollup vite make cmake"
+    local ci_keywords="ci cd pipeline github actions actions travis jenkins circle"
+    local docs_keywords="docs documentation readme comment comments javadoc jsdoc docstring"
+    local style_keywords="style format formatting lint linting prettier eslint pylint"
+    local chore_keywords="chore update updated upgrade bump deps dependencies dependency"
+    
+    # Check each category and calculate scores
+    local categories=(revert fix feat perf refactor test build ci docs style chore)
+    local priorities=(100 90 80 70 60 50 40 30 20 10 5)
+    
+    local i=0
+    for category in "${categories[@]}"; do
+        local keyword_count=0
+        local keywords_var="${category}_keywords"
+        eval "local keywords=\$${keywords_var}"
+        
+        for keyword in $keywords; do
+            if [[ "$msg_lower" == *"$keyword"* ]]; then
+                ((keyword_count++))
+            fi
+        done
+        
+        if [[ $keyword_count -gt 0 ]]; then
+            local score=$((keyword_count * priorities[i]))
+            if [[ $score -gt $best_score ]]; then
+                best_score=$score
+                best_category=$category
+            fi
+        fi
+        ((i++))
+    done
+    
+    echo "$best_category"
+}
+
 # Analyze git commit types
 _freq_dirs_analyze_commits() {
     local temp_file=$(mktemp)
     
-    # Keywords for categorization
-    local fix_keywords="fix fixed fixes bugfix hotfix patch bug resolve"
-    local feat_keywords="add added feat feature implement new create"
-    local test_keywords="test tests testing spec specs"
-    local refactor_keywords="refactor refactoring cleanup clean improve"
-    local docs_keywords="docs documentation readme comment comments"
-    local chore_keywords="chore update bump deps dependencies version"
-    
+    # Category counters
+    local revert_count=0
     local fix_count=0
     local feat_count=0
-    local test_count=0
+    local perf_count=0
     local refactor_count=0
+    local test_count=0
+    local build_count=0
+    local ci_count=0
     local docs_count=0
+    local style_count=0
     local chore_count=0
     local other_count=0
     
@@ -156,84 +202,62 @@ _freq_dirs_analyze_commits() {
             [[ $timestamp -lt $today_timestamp ]] && continue
             
             local msg_lower=$(echo "$msg" | tr '[:upper:]' '[:lower:]')
-            local categorized=false
+            local category=$(_freq_dirs_categorize_commit "$msg_lower")
             
-            for keyword in $fix_keywords; do
-                if [[ "$msg_lower" == *"$keyword"* ]]; then
-                    ((fix_count++))
-                    categorized=true
-                    break
-                fi
-            done
-            
-            if [[ "$categorized" == "false" ]]; then
-                for keyword in $feat_keywords; do
-                    if [[ "$msg_lower" == *"$keyword"* ]]; then
-                        ((feat_count++))
-                        categorized=true
-                        break
-                    fi
-                done
-            fi
-            
-            if [[ "$categorized" == "false" ]]; then
-                for keyword in $test_keywords; do
-                    if [[ "$msg_lower" == *"$keyword"* ]]; then
-                        ((test_count++))
-                        categorized=true
-                        break
-                    fi
-                done
-            fi
-            
-            if [[ "$categorized" == "false" ]]; then
-                for keyword in $refactor_keywords; do
-                    if [[ "$msg_lower" == *"$keyword"* ]]; then
-                        ((refactor_count++))
-                        categorized=true
-                        break
-                    fi
-                done
-            fi
-            
-            if [[ "$categorized" == "false" ]]; then
-                for keyword in $docs_keywords; do
-                    if [[ "$msg_lower" == *"$keyword"* ]]; then
-                        ((docs_count++))
-                        categorized=true
-                        break
-                    fi
-                done
-            fi
-            
-            if [[ "$categorized" == "false" ]]; then
-                for keyword in $chore_keywords; do
-                    if [[ "$msg_lower" == *"$keyword"* ]]; then
-                        ((chore_count++))
-                        categorized=true
-                        break
-                    fi
-                done
-            fi
-            
-            [[ "$categorized" == "false" ]] && ((other_count++))
+            case "$category" in
+                revert) ((revert_count++)) ;;
+                fix) ((fix_count++)) ;;
+                feat) ((feat_count++)) ;;
+                perf) ((perf_count++)) ;;
+                refactor) ((refactor_count++)) ;;
+                test) ((test_count++)) ;;
+                build) ((build_count++)) ;;
+                ci) ((ci_count++)) ;;
+                docs) ((docs_count++)) ;;
+                style) ((style_count++)) ;;
+                chore) ((chore_count++)) ;;
+                *) ((other_count++)) ;;
+            esac
         done < "$FREQ_DIRS_GIT"
         
-        local total_commits=$((fix_count + feat_count + test_count + refactor_count + docs_count + chore_count + other_count))
+        local total_commits=$((revert_count + fix_count + feat_count + perf_count + refactor_count + test_count + build_count + ci_count + docs_count + style_count + chore_count + other_count))
         
         if [[ $total_commits -gt 0 ]]; then
-            echo "📊 Git Activity Analysis:" > "$temp_file"
-            echo "  Total commits today: $total_commits" >> "$temp_file"
+            printf "\033[94m📊 Git Activity Analysis:\033[0m\n" > "$temp_file"
+            printf "  \033[93mTotal commits today: %d\033[0m\n" "$total_commits" >> "$temp_file"
             echo "" >> "$temp_file"
-            echo "  Activity breakdown:" >> "$temp_file"
+            printf "  \033[36mActivity breakdown:\033[0m\n" >> "$temp_file"
             
-            [[ $fix_count -gt 0 ]] && printf "    🐛 Fixes: %d commits (%d%%)\n" "$fix_count" $((fix_count * 100 / total_commits)) >> "$temp_file"
-            [[ $feat_count -gt 0 ]] && printf "    ✨ Features: %d commits (%d%%)\n" "$feat_count" $((feat_count * 100 / total_commits)) >> "$temp_file"
-            [[ $test_count -gt 0 ]] && printf "    🧪 Tests: %d commits (%d%%)\n" "$test_count" $((test_count * 100 / total_commits)) >> "$temp_file"
-            [[ $refactor_count -gt 0 ]] && printf "    🔧 Refactoring: %d commits (%d%%)\n" "$refactor_count" $((refactor_count * 100 / total_commits)) >> "$temp_file"
-            [[ $docs_count -gt 0 ]] && printf "    📚 Documentation: %d commits (%d%%)\n" "$docs_count" $((docs_count * 100 / total_commits)) >> "$temp_file"
-            [[ $chore_count -gt 0 ]] && printf "    🔨 Chores: %d commits (%d%%)\n" "$chore_count" $((chore_count * 100 / total_commits)) >> "$temp_file"
-            [[ $other_count -gt 0 ]] && printf "    📝 Other: %d commits (%d%%)\n" "$other_count" $((other_count * 100 / total_commits)) >> "$temp_file"
+            [[ $revert_count -gt 0 ]] && printf "    ⏪ Reverts: %d commits \033[93m(%d%%)\033[0m\n" "$revert_count" $((revert_count * 100 / total_commits)) >> "$temp_file"
+            [[ $fix_count -gt 0 ]] && printf "    🐛 Fixes: %d commits \033[93m(%d%%)\033[0m\n" "$fix_count" $((fix_count * 100 / total_commits)) >> "$temp_file"
+            [[ $feat_count -gt 0 ]] && printf "    ✨ Features: %d commits \033[93m(%d%%)\033[0m\n" "$feat_count" $((feat_count * 100 / total_commits)) >> "$temp_file"
+            [[ $perf_count -gt 0 ]] && printf "    ⚡ Performance: %d commits \033[93m(%d%%)\033[0m\n" "$perf_count" $((perf_count * 100 / total_commits)) >> "$temp_file"
+            [[ $refactor_count -gt 0 ]] && printf "    🔧 Refactoring: %d commits \033[93m(%d%%)\033[0m\n" "$refactor_count" $((refactor_count * 100 / total_commits)) >> "$temp_file"
+            [[ $test_count -gt 0 ]] && printf "    🧪 Tests: %d commits \033[93m(%d%%)\033[0m\n" "$test_count" $((test_count * 100 / total_commits)) >> "$temp_file"
+            [[ $build_count -gt 0 ]] && printf "    📦 Build: %d commits \033[93m(%d%%)\033[0m\n" "$build_count" $((build_count * 100 / total_commits)) >> "$temp_file"
+            [[ $ci_count -gt 0 ]] && printf "    🔄 CI/CD: %d commits \033[93m(%d%%)\033[0m\n" "$ci_count" $((ci_count * 100 / total_commits)) >> "$temp_file"
+            [[ $docs_count -gt 0 ]] && printf "    📚 Documentation: %d commits \033[93m(%d%%)\033[0m\n" "$docs_count" $((docs_count * 100 / total_commits)) >> "$temp_file"
+            [[ $style_count -gt 0 ]] && printf "    💅 Style: %d commits \033[93m(%d%%)\033[0m\n" "$style_count" $((style_count * 100 / total_commits)) >> "$temp_file"
+            [[ $chore_count -gt 0 ]] && printf "    🔨 Chores: %d commits \033[93m(%d%%)\033[0m\n" "$chore_count" $((chore_count * 100 / total_commits)) >> "$temp_file"
+            [[ $other_count -gt 0 ]] && printf "    📝 Other: %d commits \033[93m(%d%%)\033[0m\n" "$other_count" $((other_count * 100 / total_commits)) >> "$temp_file"
+            
+            # Add keyword suggestions if there are "other" commits
+            if [[ $other_count -gt 0 ]]; then
+                echo "" >> "$temp_file"
+                # Generate random suggestions dynamically at runtime using shuf
+                local all_keywords="fix feat add test refactor docs perf build ci style chore resolve implement create update improve optimize enhance cleanup bugfix hotfix patch feature testing spec coverage deploy release revert rollback configure setup install upgrade bump"
+                
+                # Use shuf to randomly select 3 keywords
+                local selected=$(echo $all_keywords | tr ' ' '\n' | shuf -n 3)
+                local keyword1=$(echo "$selected" | sed -n '1p')
+                local keyword2=$(echo "$selected" | sed -n '2p')
+                local keyword3=$(echo "$selected" | sed -n '3p')
+                
+                printf "  💡 \033[33mTip:\033[0m Use keywords like " >> "$temp_file"
+                printf "\033[91m%s\033[0m, " "$keyword1" >> "$temp_file"
+                printf "\033[92m%s\033[0m, or " "$keyword2" >> "$temp_file"  
+                printf "\033[94m%s\033[0m in commits\n" "$keyword3" >> "$temp_file"
+            fi
             
             # Find most active git project
             echo "" >> "$temp_file"
@@ -242,7 +266,7 @@ _freq_dirs_analyze_commits() {
                 if [[ -n "$most_active" ]]; then
                     local dir=$(echo "$most_active" | cut -d'|' -f1)
                     local count=$(echo "$most_active" | cut -d'|' -f2)
-                    echo "  Most active project: $dir ($count commits)" >> "$temp_file"
+                    printf "  \033[32mMost active project:\033[0m %s \033[93m(%d commits)\033[0m\n" "$dir" "$count" >> "$temp_file"
                 fi
             fi
         fi
@@ -370,21 +394,30 @@ _freq_dirs_generate_insights() {
             total_visits=$((total_visits + count))
         done < "$FREQ_DIRS_TODAY"
         
-        echo "📊 Today's Activity Summary" > "$temp_file"
-        echo "────────────────────────────" >> "$temp_file"
-        echo "Total directories visited: $(cat "$FREQ_DIRS_TODAY" | wc -l)" >> "$temp_file"
-        echo "Total navigation events: $total_visits" >> "$temp_file"
-        echo "Total tracked time: $(_freq_dirs_format_time $total_time)" >> "$temp_file"
+        printf "\033[94m📊 Today's Activity Summary\033[0m\n" > "$temp_file"
+        printf "\033[90m────────────────────────────\033[0m\n" >> "$temp_file"
+        printf "Total directories visited: \033[93m$(cat "$FREQ_DIRS_TODAY" | wc -l)\033[0m\n" >> "$temp_file"
+        printf "Total navigation events: \033[93m$total_visits\033[0m\n" >> "$temp_file"
+        printf "Total tracked time: \033[92m$(_freq_dirs_format_time $total_time)\033[0m\n" >> "$temp_file"
         echo "" >> "$temp_file"
         
         # Top directories by time
         if [[ $total_time -gt 0 ]]; then
-            echo "⏱️  Time Distribution:" >> "$temp_file"
+            printf "\033[36m⏱️  Time Distribution:\033[0m\n" >> "$temp_file"
             sort -t'|' -k3 -rn "$FREQ_DIRS_TODAY" | head -5 | while IFS='|' read -r dir count time; do
                 [[ -z "$time" ]] && time=0
                 if [[ $time -gt 0 ]]; then
                     local percent=$((time * 100 / total_time))
-                    printf "  %-40s %s (%d%%)\n" "$dir" "$(_freq_dirs_format_time $time)" "$percent" >> "$temp_file"
+                    # Color based on percentage
+                    local color="37"  # White default
+                    if [[ $percent -gt 50 ]]; then
+                        color="91"  # Bright red for > 50%
+                    elif [[ $percent -gt 30 ]]; then
+                        color="93"  # Bright yellow for > 30%
+                    elif [[ $percent -gt 10 ]]; then
+                        color="92"  # Bright green for > 10%
+                    fi
+                    printf "  %-40s \033[${color}m%s (%d%%)\033[0m\n" "$dir" "$(_freq_dirs_format_time $time)" "$percent" >> "$temp_file"
                 fi
             done
             echo "" >> "$temp_file"
@@ -392,7 +425,7 @@ _freq_dirs_generate_insights() {
         
         # Session analysis
         if [[ -s "$FREQ_DIRS_SESSIONS" ]]; then
-            echo "📈 Session Patterns:" >> "$temp_file"
+            printf "\033[35m📈 Session Patterns:\033[0m\n" >> "$temp_file"
             
             # Find peak hours
             local hour_counts=$(mktemp)
@@ -402,7 +435,7 @@ _freq_dirs_generate_insights() {
             
             if [[ -s "$hour_counts" ]]; then
                 local peak_hour=$(sort "$hour_counts" | uniq -c | sort -rn | head -1 | awk '{print $2}')
-                [[ -n "$peak_hour" ]] && echo "  Peak activity hour: ${peak_hour}:00" >> "$temp_file"
+                [[ -n "$peak_hour" ]] && printf "  Peak activity hour: \033[93m${peak_hour}:00\033[0m\n" >> "$temp_file"
             fi
             rm -f "$hour_counts"
             
@@ -411,12 +444,12 @@ _freq_dirs_generate_insights() {
             if [[ $session_count -gt 0 ]]; then
                 local total_session_time=$(awk -F'|' '{sum+=$4} END {print sum}' "$FREQ_DIRS_SESSIONS")
                 local avg_time=$((total_session_time / session_count))
-                echo "  Average time per directory: $(_freq_dirs_format_time $avg_time)" >> "$temp_file"
+                printf "  Average time per directory: \033[92m$(_freq_dirs_format_time $avg_time)\033[0m\n" >> "$temp_file"
             fi
             
             # Directory sequences (patterns)
             echo "" >> "$temp_file"
-            echo "🔄 Common Navigation Patterns:" >> "$temp_file"
+            printf "\033[96m🔄 Common Navigation Patterns:\033[0m\n" >> "$temp_file"
             local prev_dir=""
             local patterns=$(mktemp)
             cat "$FREQ_DIRS_SESSIONS" | sort -t'|' -k2 -n | while IFS='|' read -r dir start_time end_time duration; do
@@ -428,7 +461,10 @@ _freq_dirs_generate_insights() {
             
             if [[ -s "$patterns" ]]; then
                 sort "$patterns" | uniq -c | sort -rn | head -3 | while read count pattern; do
-                    echo "  $pattern (${count}x)" >> "$temp_file"
+                    # Split pattern into parts and colorize arrow (using awk for multi-byte delimiter)  
+                    local from_dir=$(echo "$pattern" | awk -F' → ' '{print $1}')
+                    local to_dir=$(echo "$pattern" | awk -F' → ' '{print $2}')
+                    printf "  %s \033[93m→\033[0m %s \033[90m(%sx)\033[0m\n" "$from_dir" "$to_dir" "$count" >> "$temp_file"
                 done
             fi
             rm -f "$patterns"
@@ -651,29 +687,46 @@ freq() {
         
         if [[ "$period" == "yesterday" ]]; then
             if [[ -n "$git_display" ]]; then
-                printf "  \033[36m[j%d]\033[0m %-35s \033[90m(%d visits%s yesterday)\033[0m \033[93m%s\033[0m\n" \
-                    "$i" "$display_dir" "$count" "$time_display" "$git_display"
+                printf "  [36m[j%d][0m %-35s [90m(%d visits%s yesterday)[0m [93m%s[0m
+"                     "$i" "$display_dir" "$count" "$time_display" "$git_display"
             else
-                printf "  \033[36m[j%d]\033[0m %-35s \033[90m(%d visits%s yesterday)\033[0m\n" \
-                    "$i" "$display_dir" "$count" "$time_display"
+                printf "  [36m[j%d][0m %-35s [90m(%d visits%s yesterday)[0m
+"                     "$i" "$display_dir" "$count" "$time_display"
             fi
         else
-            # Color code by time spent (longer = warmer)
-            local color="33"  # Yellow default
+            # Color based on activity score (visits * time)
+            local activity_score=$((count * time / 60))  # visits * minutes
+            local visits_color=""
+            local time_color=""
+            
+            # Color for visits count
+            if [[ $count -gt 10 ]]; then
+                visits_color="[91m"  # Bright red for very frequent
+            elif [[ $count -gt 5 ]]; then
+                visits_color="[33m"  # Yellow for frequent
+            elif [[ $count -gt 2 ]]; then
+                visits_color="[92m"  # Bright green for moderate
+            else
+                visits_color="[36m"  # Cyan for low
+            fi
+            
+            # Color for time
             if [[ $time -gt 3600 ]]; then
-                color="31"  # Red for > 1 hour
+                time_color="[31m"  # Red for > 1 hour
             elif [[ $time -gt 1800 ]]; then
-                color="91"  # Light red for > 30 min
+                time_color="[91m"  # Bright red for > 30 min
             elif [[ $time -gt 600 ]]; then
-                color="93"  # Light yellow for > 10 min
+                time_color="[93m"  # Bright yellow for > 10 min
+            else
+                time_color="[92m"  # Green for < 10 min
             fi
             
             if [[ -n "$git_display" ]]; then
-                printf "  \033[36m[j%d]\033[0m %-35s \033[${color}m(%d visits%s today)\033[0m \033[93m%s\033[0m\n" \
-                    "$i" "$display_dir" "$count" "$time_display" "$git_display"
+                printf "  [36m[j%d][0m %-35s (%s%d visits[0m · %s%s[0m today) [38;5;220m%s[0m
+"                     "$i" "$display_dir" "$visits_color" "$count" "$time_color" "$(_freq_dirs_format_time $time)" "$git_display"
             else
-                printf "  \033[36m[j%d]\033[0m %-35s \033[${color}m(%d visits%s today)\033[0m\n" \
-                    "$i" "$display_dir" "$count" "$time_display"
+                printf "  [36m[j%d][0m %-35s (%s%d visits[0m · %s%s[0m today)
+"                     "$i" "$display_dir" "$visits_color" "$count" "$time_color" "$(_freq_dirs_format_time $time)"
             fi
         fi
         
