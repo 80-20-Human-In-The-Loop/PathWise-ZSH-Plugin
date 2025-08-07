@@ -646,12 +646,17 @@ freq() {
         fi
         
         if [[ $git_count -gt 0 ]]; then
-            git_display=" \033[93m[$git_count commits]\033[0m"
+            git_display=" [$git_count commits]"
         fi
         
         if [[ "$period" == "yesterday" ]]; then
-            printf "  \033[36m[j%d]\033[0m %-35s \033[90m(%d visits%s yesterday)%s\033[0m\n" \
-                "$i" "$display_dir" "$count" "$time_display" "$git_display"
+            if [[ -n "$git_display" ]]; then
+                printf "  \033[36m[j%d]\033[0m %-35s \033[90m(%d visits%s yesterday)\033[0m \033[93m%s\033[0m\n" \
+                    "$i" "$display_dir" "$count" "$time_display" "$git_display"
+            else
+                printf "  \033[36m[j%d]\033[0m %-35s \033[90m(%d visits%s yesterday)\033[0m\n" \
+                    "$i" "$display_dir" "$count" "$time_display"
+            fi
         else
             # Color code by time spent (longer = warmer)
             local color="33"  # Yellow default
@@ -663,8 +668,13 @@ freq() {
                 color="93"  # Light yellow for > 10 min
             fi
             
-            printf "  \033[36m[j%d]\033[0m %-35s \033[${color}m(%d visits%s today)\033[0m%s\n" \
-                "$i" "$display_dir" "$count" "$time_display" "$git_display"
+            if [[ -n "$git_display" ]]; then
+                printf "  \033[36m[j%d]\033[0m %-35s \033[${color}m(%d visits%s today)\033[0m \033[93m%s\033[0m\n" \
+                    "$i" "$display_dir" "$count" "$time_display" "$git_display"
+            else
+                printf "  \033[36m[j%d]\033[0m %-35s \033[${color}m(%d visits%s today)\033[0m\n" \
+                    "$i" "$display_dir" "$count" "$time_display"
+            fi
         fi
         
         # Create the jump alias dynamically
