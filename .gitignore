@@ -1,0 +1,29 @@
+# Test files
+test/
+*.test
+
+# Backup files
+*.bak
+*.tmp
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local config
+.env
+local-config.zsh
+
+# User data files (don't commit personal navigation data)
+.frequent_dirs*
+*.log
+
+# Build artifacts
+*.zwc
