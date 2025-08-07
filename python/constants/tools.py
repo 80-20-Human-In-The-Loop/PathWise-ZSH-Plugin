@@ -5,6 +5,14 @@ Define which tools/commands to track for usage analytics
 
 # Tools to track organized by category
 TRACKED_TOOLS = {
+    'ai_tools': {
+        'emoji': '🤖',
+        'tools': [
+            'claude', 'gemini', 'opencode', 'chatgpt', 'copilot',
+            'codeium', 'aider', 'cursor', 'cody', 'tabnine',
+            'gpt', 'ollama', 'sgpt', 'llm'
+        ]
+    },
     'editors': {
         'emoji': '📝',
         'tools': [

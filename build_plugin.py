@@ -504,10 +504,17 @@ _freq_dirs_analyze_tools_multi() {
                 # Determine category label
                 local category_label=""
                 if [[ "$tool_info" == "custom" ]]; then
-                    category_label="custom script"
+                    # Check if it's a script with ./ prefix
+                    if [[ "$tool" == ./* ]] || [[ "$tool" == ../* ]]; then
+                        category_label="custom script"
+                    else
+                        category_label="user tool"
+                    fi
                 elif [[ "$tool_info" == "known" ]]; then
                     # Map known tools to categories
                     case "$tool" in
+                        claude|gemini|opencode|chatgpt|copilot|codeium|aider|cursor|cody|tabnine|gpt|ollama|sgpt|llm)
+                            category_label="AI assistant" ;;
                         nano|vim|vi|nvim|neovim|emacs|code|subl)
                             category_label="editor" ;;
                         git|svn|hg)
@@ -570,8 +577,15 @@ _freq_dirs_track_tool() {{
     # Extract just the tool name (first word)
     local tool=$(echo "$full_cmd" | awk '{{print $1}}')
     
-    # Skip if empty or builtin
+    # Skip if empty
     [[ -z "$tool" ]] && return
+    
+    # Skip shell builtins and navigation commands
+    case "$tool" in
+        cd|pushd|popd|dirs|pwd|source|.|alias|unalias|export|unset|builtin|command|type|which|eval|exec|exit|return)
+            return
+            ;;
+    esac
     
     # Skip PathWise's own commands to avoid noise in tool tracking
     case "$tool" in
@@ -580,21 +594,32 @@ _freq_dirs_track_tool() {{
             ;;
     esac
     
-    # Check if it's an actual executable command
-    if command -v "$tool" >/dev/null 2>&1; then
+    # Determine if it's a custom script (starts with ./ or ../)
+    local is_custom_script=false
+    local tool_to_track="$tool"
+    if [[ "$tool" == ./* ]] || [[ "$tool" == ../* ]]; then
+        is_custom_script=true
+        # Keep the ./ or ../ prefix for custom scripts
+        tool_to_track="$tool"
+    fi
+    
+    # Check if it's an actual executable command or custom script
+    if [[ "$is_custom_script" == "true" ]] || command -v "$tool" >/dev/null 2>&1; then
         local tool_path=$(which "$tool" 2>/dev/null)
         local tool_type="other"
         local current_dir="${{PWD/#$HOME/~}}"
         
         # Categorize the tool
-        if [[ "$tool_path" == "$HOME/"* ]]; then
-            tool_type="custom"  # User's custom scripts
+        if [[ "$is_custom_script" == "true" ]]; then
+            tool_type="custom"  # Scripts run with ./ or ../
         elif [[ "$tool" =~ ^({known_tools_pattern})$ ]]; then
             tool_type="known"  # From our predefined list
+        elif [[ "$tool_path" == "$HOME/"* ]]; then
+            tool_type="custom"  # User's custom scripts in PATH
         fi
         
         # Record tool usage
-        echo "${{current_dir}}|${{tool}}|${{tool_type}}|$(date +%s)" >> "$FREQ_DIRS_TOOLS"
+        echo "${{current_dir}}|${{tool_to_track}}|${{tool_type}}|$(date +%s)" >> "$FREQ_DIRS_TOOLS"
     fi
 }}
 
@@ -643,13 +668,23 @@ _freq_dirs_analyze_tools() {{
     echo ""
     printf "  \\033[90m💡 Use 'wfreq --tools' to see tool usage across top directories\\033[0m\\n"
     
-    # Show custom scripts if any
+    # Show custom scripts and AI tools if any
     echo ""
-    local custom_tools=$(awk -F'|' '$3=="custom" {{print $2}}' "$temp_file" | sort -u)
-    if [[ -n "$custom_tools" ]]; then
+    local custom_scripts=$(awk -F'|' '$3=="custom" {{print $2}}' "$temp_file" | grep '^\\.\/' | sort -u)
+    local ai_tools=$(grep -E "\\|(claude|gemini|opencode|chatgpt|copilot|codeium|aider|cursor|cody|tabnine|gpt|ollama|sgpt|llm)\\|" "$temp_file" | awk -F'|' '{{print $2}}' | sort -u)
+    
+    if [[ -n "$custom_scripts" ]]; then
         printf "  \\033[35mCustom Scripts Used Here:\\033[0m\\n"
-        echo "    $custom_tools" | tr ' ' '\\n' | head -5 | while read tool; do
-            [[ -n "$tool" ]] && printf "    🔧 %s\\n" "$tool"
+        echo "$custom_scripts" | head -5 | while read tool; do
+            [[ -n "$tool" ]] && printf "    📜 %s\\n" "$tool"
+        done
+        echo ""
+    fi
+    
+    if [[ -n "$ai_tools" ]]; then
+        printf "  \\033[94mAI Assistants Used Here:\\033[0m\\n"
+        echo "$ai_tools" | head -5 | while read tool; do
+            [[ -n "$tool" ]] && printf "    🤖 %s\\n" "$tool"
         done
     fi
     
@@ -1092,7 +1127,8 @@ _freq_dirs_get_merged_data() {
     if [[ -s "$FREQ_DIRS_YESTERDAY" ]]; then
         while IFS='|' read -r dir count time; do
             [[ -z "$time" ]] && time=0
-            if ! grep -q "^${dir}|" "$FREQ_DIRS_TODAY" 2>/dev/null; then
+            # Use faster method to check if directory already exists
+            if [[ ! -s "$FREQ_DIRS_TODAY" ]] || ! grep -qF "${dir}|" "$FREQ_DIRS_TODAY" 2>/dev/null; then
                 echo "${dir}|${count}|${time}|0|yesterday" >> "$merged_file"
             fi
         done < "$FREQ_DIRS_YESTERDAY"
@@ -1184,21 +1220,37 @@ wfreq() {{
     # Parse arguments
     case "$1" in
         --reset|-r)
+            # Check if stdin is available (terminal is interactive)
+            if [[ ! -t 0 ]]; then
+                echo "❌ Reset requires interactive terminal. Run 'wfreq --reset' manually."
+                return 1
+            fi
+            
             echo -n "Reset all frequency data? (y/N): "
-            read response
+            read -t 10 response || response="n"
             if [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]; then
+                # Always clear basic navigation data
                 > "$FREQ_DIRS_TODAY"
                 > "$FREQ_DIRS_YESTERDAY"
                 > "$FREQ_DIRS_SESSIONS"
-                > "$FREQ_DIRS_INSIGHTS"
-                > "$FREQ_DIRS_PATTERNS"
-                > "$FREQ_DIRS_GIT"
-                > "$FREQ_DIRS_GIT_TODAY"
                 date +%Y-%m-%d > "$FREQ_DIRS_LAST_RESET"
                 FREQ_CURRENT_DIR=""
                 FREQ_ENTER_TIME=""
                 FREQ_SESSION_START=""
-                echo "✅ Frequency data reset."
+                
+                # Ask about insights and tracking data
+                echo -n "Also clear insights and tool tracking? (y/N): "
+                read -t 10 insights_response || insights_response="n"
+                if [[ "$insights_response" == "y" ]] || [[ "$insights_response" == "Y" ]]; then
+                    > "$FREQ_DIRS_INSIGHTS"
+                    > "$FREQ_DIRS_PATTERNS"
+                    > "$FREQ_DIRS_GIT"
+                    > "$FREQ_DIRS_GIT_TODAY"
+                    > "$FREQ_DIRS_TOOLS"
+                    echo "✅ All frequency and insights data reset."
+                else
+                    echo "✅ Frequency data reset (insights preserved)."
+                fi
             else
                 echo "Cancelled."
             fi
@@ -1222,6 +1274,12 @@ wfreq() {{
             return
             ;;
         --config|-c)
+            # Check if stdin is available (terminal is interactive)
+            if [[ ! -t 0 ]]; then
+                echo "❌ Configuration requires interactive terminal. Run 'wfreq --config' manually."
+                return 1
+            fi
+            
             echo ""
             printf "\\033[36m⚙️  PathWise Configuration\\033[0m\\n"
             printf "\\033[90m────────────────────────────────────\\033[0m\\n"
@@ -1266,7 +1324,7 @@ wfreq() {{
             printf "\\033[96m  Enable auto-reset?\\033[0m (y/n) \\033[90m[${{FREQ_AUTO_RESET}}]\\033[0m\\n"
             printf "  \\033[90m→ Options: y=enable daily reset, n=keep data forever, Enter=no change\\033[0m\\n"
             printf "  \\033[96m>\\033[0m "
-            read response
+            read -t 10 response || response=""
             if [[ -n "$response" ]]; then
                 if [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]; then
                     FREQ_AUTO_RESET="true"
@@ -1280,7 +1338,7 @@ wfreq() {{
                 printf "\\033[96m  Reset hour\\033[0m (0-23) \\033[90m[${{FREQ_RESET_HOUR}}]\\033[0m\\n"
                 printf "  \\033[90m→ Options: 0=midnight, 12=noon, 23=11pm, Enter=no change\\033[0m\\n"
                 printf "  \\033[96m>\\033[0m "
-                read response
+                read -t 10 response || response=""
                 if [[ -n "$response" ]] && [[ "$response" =~ ^[0-9]+$ ]] && [[ "$response" -ge 0 ]] && [[ "$response" -le 23 ]]; then
                     FREQ_RESET_HOUR="$response"
                 fi
@@ -1299,7 +1357,7 @@ wfreq() {{
             printf "\\033[96m  Enable time tracking?\\033[0m (y/n) \\033[90m[${{FREQ_TRACK_TIME}}]\\033[0m\\n"
             printf "  \\033[90m→ Options: y=track time spent, n=only track visits, Enter=no change\\033[0m\\n"
             printf "  \\033[96m>\\033[0m "
-            read response
+            read -t 10 response || response=""
             if [[ -n "$response" ]]; then
                 if [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]; then
                     FREQ_TRACK_TIME="true"
@@ -1313,7 +1371,7 @@ wfreq() {{
                 printf "\\033[96m  Minimum time to track\\033[0m (seconds) \\033[90m[${{FREQ_MIN_TIME}}]\\033[0m\\n"
                 printf "  \\033[90m→ Options: 0=track all, 5=default, 60=only 1min+, Enter=no change\\033[0m\\n"
                 printf "  \\033[96m>\\033[0m "
-                read response
+                read -t 10 response || response=""
                 if [[ -n "$response" ]] && [[ "$response" =~ ^[0-9]+$ ]]; then
                     FREQ_MIN_TIME="$response"
                 fi
@@ -1323,7 +1381,7 @@ wfreq() {{
             printf "\\033[96m  Enable git tracking?\\033[0m (y/n) \\033[90m[${{FREQ_TRACK_GIT}}]\\033[0m\\n"
             printf "  \\033[90m→ Options: y=track git commits, n=disable git features, Enter=no change\\033[0m\\n"
             printf "  \\033[96m>\\033[0m "
-            read response
+            read -t 10 response || response=""
             if [[ -n "$response" ]]; then
                 if [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]; then
                     FREQ_TRACK_GIT="true"
@@ -1336,7 +1394,7 @@ wfreq() {{
             printf "\\033[96m  Enable tool tracking?\\033[0m (y/n) \\033[90m[${{FREQ_TRACK_TOOLS}}]\\033[0m\\n"
             printf "  \\033[90m→ Options: y=track tool usage, n=disable tool tracking, Enter=no change\\033[0m\\n"
             printf "  \\033[96m>\\033[0m "
-            read response
+            read -t 10 response || response=""
             if [[ -n "$response" ]]; then
                 if [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]; then
                     FREQ_TRACK_TOOLS="true"
@@ -1490,6 +1548,9 @@ def generate_setup_functions():
     return '''
 # Setup jump aliases on shell startup
 _freq_dirs_setup_aliases() {
+    # Only setup aliases in interactive shells to prevent blocking
+    [[ ! -o interactive ]] && return
+    
     _freq_dirs_load_config
     _freq_dirs_check_rotation
     
@@ -1500,10 +1561,12 @@ _freq_dirs_setup_aliases() {
     fi
     
     # Create aliases for top directories
+    # Process data without subshell to maintain variable state
     local i=1
     while IFS='|' read -r dir count time git_count period; do
         eval "alias wj${i}='cd \\"${dir/#\\~/$HOME}\\"'"
         i=$((i + 1))
+        [[ $i -gt 10 ]] && break  # Safety limit
     done <<< "$merged_data"
 }
 

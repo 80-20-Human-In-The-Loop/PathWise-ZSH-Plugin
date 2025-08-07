@@ -95,10 +95,18 @@ fi
 echo ""
 echo -e "${BLUE}→${NC} PathWise data files found:"
 DATA_FILES=(
-    "$HOME/.frequent_dirs"
+    "$HOME/.frequent_dirs.config"
     "$HOME/.frequent_dirs.today"
     "$HOME/.frequent_dirs.yesterday"
-    "$HOME/.pathwise_config"
+    "$HOME/.frequent_dirs.last_reset"
+    "$HOME/.frequent_dirs.sessions"
+    "$HOME/.frequent_dirs.insights"
+    "$HOME/.frequent_dirs.patterns"
+    "$HOME/.frequent_dirs.git"
+    "$HOME/.frequent_dirs.git.today"
+    "$HOME/.frequent_dirs.tools"
+    "$HOME/.frequent_dirs.learning"
+    "$HOME/.frequent_dirs.sessions.archive"
 )
 
 FOUND_DATA=false
