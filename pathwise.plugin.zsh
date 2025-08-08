@@ -139,13 +139,13 @@ _freq_dirs_categorize_commit() {
     
     # Keywords for categorization (priority-ordered)
     local revert_keywords="revert rollback undo back out backout rewind restore reset reverse unmerge"
-    local fix_keywords="fix fixed fixes bugfix hotfix patch bug resolve resolved resolves solved solve issue error crash broken fault mistake correct repair handle prevent avoid typo oops"
-    local feat_keywords="feat feature add added adds new implement implemented introduce introduced create created enhance enhanced extend support enable allow integrate develop include provide setup"
-    local perf_keywords="perf performance optimize optimized optimization faster speed speedup improve boost accelerate efficient reduce decreased cache lazy quick enhance performance reduce memory reduce time"
-    local refactor_keywords="refactor refactored refactoring restructure rewrite rework simplify extract move moved rename renamed reorganize clean cleanup improve decouple abstract consolidate deduplicate modularize split"
-    local test_keywords="test tests testing spec specs coverage unit integration e2e jest pytest mock stub fixture assertion expect should verify validate check ensure prove tdd bdd"
+    local fix_keywords="fix fixed fixes bugfix hotfix patch bug resolve resolved resolves solved solve issue error crash broken fault mistake correct repair handle prevent avoid typo oops troubleshoot debug debugging debugged workaround mitigate mitigation address addressed addresses remedy remediate correction glitch defect"
+    local feat_keywords="feat feature add added adds new implement implemented introduce introduced create created enhance enhanced extend support enable allow integrate develop include provide setup capability functionality improvement innovation addition establish build construct design"
+    local perf_keywords="perf performance optimize optimized optimization faster speed speedup improve boost accelerate efficient reduce decreased cache lazy quick enhance performance reduce memory reduce time throttle debounce memoize memoization parallelize parallel async asynchronous concurrent streaming buffer batch lightweight minimize shrink"
+    local refactor_keywords="refactor refactored refactoring restructure rewrite rework simplify extract move moved rename renamed reorganize clean cleanup improve decouple abstract consolidate deduplicate modularize split modernize streamline normalize standardize unify dry optimize structure reduce complexity clarify tidy polish revise rearrange redesign"
+    local test_keywords="test tests testing spec specs coverage unit integration e2e jest pytest mock stub fixture assertion expect should verify validate check ensure prove tdd bdd snapshot regression smoke test smoke sanity check sanity acceptance functional scenario suite testcase test case qa quality assurance"
     local build_keywords="build compile bundle webpack rollup vite make cmake gradle maven npm yarn pnpm package dist transpile babel typescript tsc esbuild swc minify uglify compress"
-    local ci_keywords="ci cd pipeline github actions actions travis jenkins circle circleci deploy deployment release publish docker kubernetes k8s helm terraform ansible workflow automation"
+    local ci_keywords="ci cd pipeline github actions actions travis jenkins circle circleci deploy deployment release publish docker kubernetes k8s helm terraform ansible workflow automation continuous staging production rollout canary blue-green artifact artifacts container orchestration infrastructure iac gitops devops cicd"
     local docs_keywords="docs documentation readme comment comments javadoc jsdoc docstring api doc guide tutorial example clarify explain describe document wiki changelog notes annotation usage"
     local style_keywords="style format formatting lint linting prettier eslint pylint rubocop whitespace indent indentation semicolon quotes spacing code style convention pep8 black gofmt rustfmt standardize"
     local chore_keywords="chore update updated upgrade bump deps dependencies dependency version maintain routine housekeeping misc minor tweak adjust modify prepare setup config configure init bootstrap"
@@ -188,13 +188,13 @@ _freq_dirs_categorize_with_keyword() {
     
     # Keywords for categorization (priority-ordered)
     local revert_keywords="revert rollback undo back out backout rewind restore reset reverse unmerge"
-    local fix_keywords="fix fixed fixes bugfix hotfix patch bug resolve resolved resolves solved solve issue error crash broken fault mistake correct repair handle prevent avoid typo oops"
-    local feat_keywords="feat feature add added adds new implement implemented introduce introduced create created enhance enhanced extend support enable allow integrate develop include provide setup"
-    local perf_keywords="perf performance optimize optimized optimization faster speed speedup improve boost accelerate efficient reduce decreased cache lazy quick enhance performance reduce memory reduce time"
-    local refactor_keywords="refactor refactored refactoring restructure rewrite rework simplify extract move moved rename renamed reorganize clean cleanup improve decouple abstract consolidate deduplicate modularize split"
-    local test_keywords="test tests testing spec specs coverage unit integration e2e jest pytest mock stub fixture assertion expect should verify validate check ensure prove tdd bdd"
+    local fix_keywords="fix fixed fixes bugfix hotfix patch bug resolve resolved resolves solved solve issue error crash broken fault mistake correct repair handle prevent avoid typo oops troubleshoot debug debugging debugged workaround mitigate mitigation address addressed addresses remedy remediate correction glitch defect"
+    local feat_keywords="feat feature add added adds new implement implemented introduce introduced create created enhance enhanced extend support enable allow integrate develop include provide setup capability functionality improvement innovation addition establish build construct design"
+    local perf_keywords="perf performance optimize optimized optimization faster speed speedup improve boost accelerate efficient reduce decreased cache lazy quick enhance performance reduce memory reduce time throttle debounce memoize memoization parallelize parallel async asynchronous concurrent streaming buffer batch lightweight minimize shrink"
+    local refactor_keywords="refactor refactored refactoring restructure rewrite rework simplify extract move moved rename renamed reorganize clean cleanup improve decouple abstract consolidate deduplicate modularize split modernize streamline normalize standardize unify dry optimize structure reduce complexity clarify tidy polish revise rearrange redesign"
+    local test_keywords="test tests testing spec specs coverage unit integration e2e jest pytest mock stub fixture assertion expect should verify validate check ensure prove tdd bdd snapshot regression smoke test smoke sanity check sanity acceptance functional scenario suite testcase test case qa quality assurance"
     local build_keywords="build compile bundle webpack rollup vite make cmake gradle maven npm yarn pnpm package dist transpile babel typescript tsc esbuild swc minify uglify compress"
-    local ci_keywords="ci cd pipeline github actions actions travis jenkins circle circleci deploy deployment release publish docker kubernetes k8s helm terraform ansible workflow automation"
+    local ci_keywords="ci cd pipeline github actions actions travis jenkins circle circleci deploy deployment release publish docker kubernetes k8s helm terraform ansible workflow automation continuous staging production rollout canary blue-green artifact artifacts container orchestration infrastructure iac gitops devops cicd"
     local docs_keywords="docs documentation readme comment comments javadoc jsdoc docstring api doc guide tutorial example clarify explain describe document wiki changelog notes annotation usage"
     local style_keywords="style format formatting lint linting prettier eslint pylint rubocop whitespace indent indentation semicolon quotes spacing code style convention pep8 black gofmt rustfmt standardize"
     local chore_keywords="chore update updated upgrade bump deps dependencies dependency version maintain routine housekeeping misc minor tweak adjust modify prepare setup config configure init bootstrap"
@@ -1340,41 +1340,50 @@ _freq_dirs_generate_insights() {
 _freq_dirs_get_merged_data() {
     local show_count="${1:-$FREQ_SHOW_COUNT}"
     local merged_file=$(mktemp)
+    local sorted_file=$(mktemp)
     
-    # Add today's data with "today" marker
+    # Add today's data with "today" marker and priority weight
     if [[ -s "$FREQ_DIRS_TODAY" ]]; then
         while IFS='|' read -r dir count time; do
             [[ -z "$time" ]] && time=0
             local git_count=$(_freq_dirs_get_git_count "$dir")
-            echo "${dir}|${count}|${time}|${git_count}|today" >> "$merged_file"
+            # Add priority weight (2 for today) as first field for sorting
+            echo "2|${dir}|${count}|${time}|${git_count}|today" >> "$merged_file"
         done < "$FREQ_DIRS_TODAY"
     fi
     
-    # Add yesterday's data with "yesterday" marker (only if not already in today)
+    # Add yesterday's data with "yesterday" marker - allow dual entries
     if [[ -s "$FREQ_DIRS_YESTERDAY" ]]; then
         while IFS='|' read -r dir count time; do
             [[ -z "$time" ]] && time=0
-            # Use faster method to check if directory already exists
-            if [[ ! -s "$FREQ_DIRS_TODAY" ]] || ! grep -qF "${dir}|" "$FREQ_DIRS_TODAY" 2>/dev/null; then
-                echo "${dir}|${count}|${time}|0|yesterday" >> "$merged_file"
-            fi
+            # Add priority weight (1 for yesterday) as first field for sorting
+            # Note: We now allow yesterday's data even if directory exists in today
+            echo "1|${dir}|${count}|${time}|0|yesterday" >> "$merged_file"
         done < "$FREQ_DIRS_YESTERDAY"
     fi
     
-    # Sort based on configuration
+    # Sort based on configuration with period priority
     case "$FREQ_SORT_BY" in
         visits)
-            sort -t'|' -k2 -rn "$merged_file" | head -n "$show_count"
+            # Sort by: 1) period weight (today first), 2) visit count
+            sort -t'|' -k1,1rn -k3,3rn "$merged_file" > "$sorted_file"
             ;;
         commits)
-            sort -t'|' -k4 -rn "$merged_file" | head -n "$show_count"
+            # Sort by: 1) period weight (today first), 2) git commits
+            sort -t'|' -k1,1rn -k5,5rn "$merged_file" > "$sorted_file"
             ;;
         time|*)
-            sort -t'|' -k3 -rn "$merged_file" | head -n "$show_count"
+            # Sort by: 1) period weight (today first), 2) time spent
+            sort -t'|' -k1,1rn -k4,4rn "$merged_file" > "$sorted_file"
             ;;
     esac
     
-    rm -f "$merged_file"
+    # Remove the priority weight field - don't limit here, let display handle it
+    while IFS='|' read -r weight dir count time git_count period; do
+        echo "${dir}|${count}|${time}|${git_count}|${period}"
+    done < "$sorted_file"
+    
+    rm -f "$merged_file" "$sorted_file"
 }
 
 PATHWISE_TIPS=(
@@ -1540,14 +1549,162 @@ PATHWISE_TIPS=(
     "bash_other:Hex to RGB: Use printf '%d' 0x\${hex:0:2} to convert hex color values"
     "bash_other:RGB to hex: 'printf '#%02x%02x%02x' \$r \$g \$b' converts RGB to hex"
     "bash_other:Pseudo-random: '\$((RANDOM % 100))' gives 0-99, seed with RANDOM=seed"
+    "tmux:Split horizontally: Ctrl+b % | Split vertically: Ctrl+b \""
+    "tmux:Navigate panes: Ctrl+b + arrow keys for quick pane switching"
+    "tmux:Create new window: Ctrl+b c | Switch windows: Ctrl+b 0-9"
+    "tmux:Detach session: Ctrl+b d | Reattach: 'tmux attach'"
+    "tmux:List sessions: 'tmux ls' | Kill session: 'tmux kill-session -t name'"
+    "tmux:Rename window: Ctrl+b , | Rename session: Ctrl+b \$"
+    "tmux:Zoom pane to fullscreen: Ctrl+b z (toggle zoom)"
+    "tmux:Copy mode: Ctrl+b [ to scroll and copy text, q to exit"
+    "tmux:Resize panes: Hold Ctrl+b and use arrow keys"
+    "tmux:Synchronize panes: Ctrl+b : then 'setw synchronize-panes' for parallel input"
+    "tmux:Save layout: Ctrl+b : then 'list-windows -F' to see layout string"
+    "tmux:Search in copy mode: Ctrl+b [ then Ctrl+s (forward) or Ctrl+r (reverse)"
+    "tmux:Break pane to window: Ctrl+b ! moves current pane to new window"
+    "tmux:Join panes: 'join-pane -s window.pane' merges panes"
+    "tmux:Persist sessions: Use 'tmux-resurrect' plugin to save/restore sessions"
+    "terminal_features:Most terminals support Ctrl+Shift+T for new tab, Ctrl+Shift+W to close"
+    "terminal_features:Click URLs: Hold Ctrl while clicking links in most modern terminals"
+    "terminal_features:Select rectangular blocks: Hold Alt while selecting text"
+    "terminal_features:Zoom text: Ctrl+Plus/Minus adjusts font size in most terminals"
+    "terminal_features:Search output: Ctrl+Shift+F searches scrollback in many terminals"
+    "terminal_features:Clear scrollback: Ctrl+Shift+K in some terminals, 'clear && printf '\e[3J'' in others"
+    "terminal_features:GPU rendering: Enable in preferences for smoother scrolling on high DPI"
+    "terminal_features:True color support: Test with 'printf '\x1b[38;2;255;100;0mTRUECOLOR\x1b[0m\n''"
+    "terminal_features:Set title: 'echo -ne '\033]0;Your Title\007'' changes terminal window title"
+    "terminal_features:Save output: Use 'script' command to record entire terminal session"
+    "terminal_features:Unicode support: Modern terminals handle emoji and special chars natively 🚀"
+    "terminal_features:Alt+click in many terminals positions cursor at click location"
+    "terminal_features:Double-click selects word, triple-click selects entire line"
+    "terminal_features:Middle mouse button pastes selection buffer on Linux"
+    "terminal_features:Ctrl+L clears screen while preserving scrollback history"
+    "ssh:SSH config: Create ~/.ssh/config for host aliases and settings"
+    "ssh:Agent forwarding: 'ssh -A' forwards your SSH keys to remote host"
+    "ssh:Port forwarding: 'ssh -L 8080:localhost:80 server' forwards remote port"
+    "ssh:Reverse tunnel: 'ssh -R 9000:localhost:3000 server' exposes local port"
+    "ssh:Keep alive: Add 'ServerAliveInterval 60' to ~/.ssh/config"
+    "ssh:Jump hosts: 'ssh -J bastion target' or ProxyJump in config"
+    "ssh:SSH keys: 'ssh-copy-id user@host' installs your public key"
+    "ssh:Escape sequences: Type '~.' to disconnect hung session"
+    "ssh:Compression: 'ssh -C' enables compression for slow connections"
+    "ssh:X11 forwarding: 'ssh -X' allows running GUI apps remotely"
+    "ssh:Control master: Share connections with ControlPath in config"
+    "ssh:SOCKS proxy: 'ssh -D 8080 server' creates SOCKS5 proxy"
+    "ssh:Run command: 'ssh server \"command\"' executes and returns"
+    "ssh:Background tunnel: 'ssh -fNL 8080:localhost:80 server' runs in background"
+    "ssh:Verbose mode: 'ssh -vvv' for debugging connection issues"
+    "cli_tools:fzf: Press Ctrl+R after installing fzf for fuzzy command history search"
+    "cli_tools:ripgrep: 'rg pattern' is faster than grep and respects .gitignore"
+    "cli_tools:fd: 'fd pattern' is a fast, user-friendly alternative to find"
+    "cli_tools:bat: Enhanced cat with syntax highlighting and git integration"
+    "cli_tools:exa/eza: Modern ls replacement with tree view and git status"
+    "cli_tools:jq: 'curl api | jq .field' extracts JSON fields elegantly"
+    "cli_tools:htop/btop: Interactive process viewers superior to top"
+    "cli_tools:ncdu: NCurses disk usage analyzer for finding large files"
+    "cli_tools:tldr: Simplified man pages with practical examples"
+    "cli_tools:ag: The Silver Searcher - another fast code searching tool"
+    "cli_tools:httpie: 'http GET example.com' for human-friendly HTTP requests"
+    "cli_tools:delta: Beautiful git diff viewer with syntax highlighting"
+    "cli_tools:zoxide: Smarter cd that learns your habits (like PathWise!)"
+    "cli_tools:direnv: Auto-load environment variables per directory"
+    "cli_tools:entr: 'ls *.py | entr -c python main.py' auto-runs on file changes"
+    "docker:Clean everything: 'docker system prune -a' removes all unused data"
+    "docker:Live logs: 'docker logs -f container' follows log output"
+    "docker:Exec into container: 'docker exec -it container bash' for debugging"
+    "docker:Copy files: 'docker cp file container:/path' transfers files"
+    "docker:Resource stats: 'docker stats' shows real-time container metrics"
+    "docker:Build with no cache: 'docker build --no-cache .' forces fresh build"
+    "docker:Remove dangling images: 'docker image prune' cleans unnamed images"
+    "docker:List with formatting: 'docker ps --format \"table {{.Names}}\t{{.Status}}\"'"
+    "docker:Stop all containers: 'docker stop \$(docker ps -q)' halts everything"
+    "docker:Volume backup: 'docker run --rm -v volume:/data -v \$(pwd):/backup busybox tar czf /backup/backup.tar.gz /data'"
+    "docker:Multi-stage builds: Use 'FROM image AS stage' for smaller final images"
+    "docker:Health checks: Add HEALTHCHECK to Dockerfile for container monitoring"
+    "docker:Use .dockerignore: Exclude files from build context for faster builds"
+    "docker:Layer caching: Order Dockerfile commands from least to most frequently changing"
+    "docker:Network debugging: 'docker run --rm -it nicolaka/netshoot' for network tools"
+    "performance:htop: Press F5 for tree view, F6 to sort by different columns"
+    "performance:iostat: 'iostat -x 1' shows detailed disk I/O statistics per second"
+    "performance:iotop: Requires sudo, shows which processes are doing disk I/O"
+    "performance:nethogs: 'sudo nethogs' displays bandwidth usage per process"
+    "performance:ss: Modern netstat - 'ss -tulpn' shows listening ports"
+    "performance:perf: 'perf top' shows real-time CPU function usage (needs root)"
+    "performance:strace: 'strace -c command' summarizes system calls made"
+    "performance:lsof: 'lsof -i :8080' finds process using specific port"
+    "performance:sar: System activity reporter - 'sar -u 1 5' for CPU over time"
+    "performance:vmstat: 'vmstat 1' reports virtual memory statistics"
+    "performance:dstat: Versatile replacement for vmstat, iostat, netstat"
+    "performance:glances: Comprehensive system monitor with web interface option"
+    "performance:pidstat: 'pidstat -r 1' shows memory usage per process over time"
+    "performance:tcpdump: 'sudo tcpdump -i any port 80' captures network packets"
+    "performance:time: 'time command' shows real/user/sys time for benchmarking"
+    "vim_nano:Vim: 'ci(' changes text inside parentheses, works with {, [, \", '"
+    "vim_nano:Vim: '.' repeats last change - powerful for repetitive edits"
+    "vim_nano:Vim: 'gg=G' auto-indents entire file"
+    "vim_nano:Vim: Ctrl+v for visual block mode - edit multiple lines at once"
+    "vim_nano:Vim: ':set paste' before pasting to preserve formatting"
+    "vim_nano:Vim: 'gf' opens file under cursor, Ctrl+o returns"
+    "vim_nano:Vim: ':w !sudo tee %' saves file with sudo when you forgot"
+    "vim_nano:Vim: 'qa' starts macro recording, 'q' stops, '@a' replays"
+    "vim_nano:Nano: Alt+6 copies line, Ctrl+K cuts, Ctrl+U pastes"
+    "vim_nano:Nano: Ctrl+W searches, Alt+W repeats search"
+    "vim_nano:Nano: Alt+A marks text, then navigate to select"
+    "vim_nano:Nano: Ctrl+T opens spell checker (if available)"
+    "vim_nano:Nano: Alt+N disables/enables line wrapping"
+    "vim_nano:Nano: Ctrl+_ goes to specific line number"
+    "vim_nano:Micro: Modern nano alternative with mouse support and familiar keybindings"
+    "security:Check permissions: 'ls -la' shows full permissions, 'stat file' for details"
+    "security:Fix permissions: 'chmod 600 ~/.ssh/id_rsa' secures private keys"
+    "security:Find SUID binaries: 'find / -perm -4000 2>/dev/null' lists setuid programs"
+    "security:Show open ports: 'sudo ss -tulpn' or 'sudo netstat -tulpn'"
+    "security:Firewall status: 'sudo ufw status verbose' on Ubuntu/Debian"
+    "security:Check listening services: 'sudo lsof -i -P -n | grep LISTEN'"
+    "security:GPG encrypt: 'gpg -c file' for symmetric, 'gpg -e -r recipient file' for asymmetric"
+    "security:Generate passwords: 'openssl rand -base64 32' or 'pwgen -sy 16'"
+    "security:Hash files: 'sha256sum file' to verify file integrity"
+    "security:Secure delete: 'shred -vfz -n 3 file' overwrites before deletion"
+    "security:SSH hardening: Disable root login and password auth in sshd_config"
+    "security:Audit logs: 'sudo journalctl -xe' for system logs, 'last' for login history"
+    "security:Check processes: 'ps aux --forest' shows process tree with users"
+    "security:File capabilities: 'getcap file' shows special capabilities"
+    "security:umask: Set to 077 for secure default file permissions"
+    "networking:Test connectivity: 'ping -c 4 google.com' sends 4 packets"
+    "networking:Trace route: 'traceroute google.com' or 'mtr google.com' for interactive"
+    "networking:DNS lookup: 'dig @8.8.8.8 example.com' or 'nslookup example.com'"
+    "networking:Port check: 'nc -zv host 22' tests if port 22 is open"
+    "networking:Network interfaces: 'ip a' or 'ifconfig' shows all interfaces"
+    "networking:Routing table: 'ip route' or 'route -n' displays routes"
+    "networking:ARP cache: 'arp -a' shows IP to MAC address mappings"
+    "networking:Bandwidth test: 'curl -o /dev/null http://speedtest.tele2.net/1GB.zip'"
+    "networking:WiFi networks: 'nmcli dev wifi' lists available networks"
+    "networking:Connect WiFi: 'nmcli dev wifi connect SSID password pass'"
+    "networking:Show connections: 'nmcli con show' lists NetworkManager connections"
+    "networking:HTTP headers: 'curl -I https://example.com' shows response headers"
+    "networking:Download with resume: 'wget -c URL' or 'curl -C - -O URL'"
+    "networking:Network usage: 'vnstat' shows network traffic statistics"
+    "networking:Local network scan: 'nmap -sn 192.168.1.0/24' finds devices"
+    "packages:APT: 'apt list --installed' shows all installed packages"
+    "packages:APT: 'apt-cache policy package' shows available versions"
+    "packages:APT: 'apt-mark showmanual' lists manually installed packages"
+    "packages:DNF/YUM: 'dnf history' shows transaction history with undo option"
+    "packages:Python venv: 'python -m venv env && source env/bin/activate'"
+    "packages:pip: 'pip freeze > requirements.txt' saves current packages"
+    "packages:npm: 'npm ci' for faster, reproducible installs from package-lock"
+    "packages:npm: 'npx package' runs package without installing globally"
+    "packages:Homebrew: 'brew bundle dump' creates Brewfile of installed packages"
+    "packages:Snap: 'snap list --all' shows all snaps including disabled"
+    "packages:Flatpak: 'flatpak list --app' shows only applications, not runtimes"
+    "packages:Build from source: './configure --prefix=\$HOME/.local && make && make install'"
+    "packages:Check dependencies: 'ldd binary' shows shared library dependencies"
+    "packages:Alternative versions: 'update-alternatives --config java' switches versions"
+    "packages:Package contents: 'dpkg -L package' or 'rpm -ql package' lists files"
 )
 
 
 # Function to get a random tip with category
 _freq_dirs_get_random_tip() {
     local num_tips=${#PATHWISE_TIPS[@]}
-    # Seed RANDOM with current time for better randomization  
-    RANDOM=$SECONDS
     # Zsh arrays are 1-indexed
     local random_index=$((RANDOM % num_tips + 1))
     local tip_with_category="${PATHWISE_TIPS[$random_index]}"
@@ -1556,7 +1713,7 @@ _freq_dirs_get_random_tip() {
     local category="${tip_with_category%%:*}"
     local tip="${tip_with_category#*:}"
     
-    # Capitalize and format category name
+    # Capitalize and format category name (handle underscores)
     case "$category" in
         pathwise) category="PathWise" ;;
         zsh) category="Zsh" ;;
@@ -1564,6 +1721,27 @@ _freq_dirs_get_random_tip() {
         productivity) category="Productivity" ;;
         git) category="Git" ;;
         advanced) category="Advanced" ;;
+        bash_strings) category="Bash Strings" ;;
+        bash_arrays) category="Bash Arrays" ;;
+        bash_loops) category="Bash Loops" ;;
+        bash_file_handling) category="Bash Files" ;;
+        bash_conditionals) category="Bash Conditionals" ;;
+        bash_variables) category="Bash Variables" ;;
+        bash_arithmetic) category="Bash Math" ;;
+        bash_traps) category="Bash Traps" ;;
+        bash_terminal) category="Bash Terminal" ;;
+        bash_internals) category="Bash Internals" ;;
+        bash_other) category="Bash Tips" ;;
+        tmux) category="Tmux" ;;
+        terminal_features) category="Terminal" ;;
+        ssh) category="SSH" ;;
+        cli_tools) category="CLI Tools" ;;
+        docker) category="Docker" ;;
+        performance) category="Performance" ;;
+        vim_nano) category="Editor" ;;
+        security) category="Security" ;;
+        networking) category="Network" ;;
+        packages) category="Packages" ;;
         *) category="${(C)category}" ;;  # Capitalize first letter
     esac
     
@@ -1816,59 +1994,84 @@ wfreq() {
     echo "PathWise Directory Frequency:"
     echo ""
     
-    # Display and create aliases
+    # Display and create aliases - properly group dual entries
     local i=1
+    local dir_count=0  # Track number of unique directories shown
+    
+    # Load config to get show_count
+    _freq_dirs_load_config
+    
+    # Pre-process: Group all entries by directory
+    local grouped_data=$(mktemp)
+    local processed_dirs=""
+    
+    # Process each unique directory in order
     while IFS='|' read -r dir count time git_count period; do
-        local display_dir="$dir"
-        local time_display=""
-        local git_display=""
-        
-        [[ -z "$time" ]] && time=0
-        [[ -z "$git_count" ]] && git_count=0
-        
-        if [[ $time -gt 0 ]]; then
-            time_display=" · $(_freq_dirs_format_time $time)"
+        # Skip if we've already processed this directory
+        if echo "$processed_dirs" | grep -qF "|${dir}|"; then
+            continue
         fi
         
-        if [[ $git_count -gt 0 ]]; then
-            git_display="[$git_count commits]"
+        # Check if we've reached the display limit
+        if [[ $dir_count -ge $FREQ_SHOW_COUNT ]]; then
+            break  # Stop processing after showing configured number of directories
         fi
         
-        # Two-line format for better readability
+        # Mark as processed
+        processed_dirs="${processed_dirs}|${dir}|"
+        dir_count=$((dir_count + 1))
+        
+        # Find all entries for this directory (both today and yesterday)
+        local today_entry=$(echo "$merged_data" | grep "^${dir}|.*|today$" | head -1)
+        local yesterday_entry=$(echo "$merged_data" | grep "^${dir}|.*|yesterday$" | head -1)
+        
+        # Display the directory header
         printf "  [36m[wj%d][0m %s
-" "$i" "$display_dir"
+" "$i" "$dir"
         
-        if [[ "$period" == "yesterday" ]]; then
-            if [[ -n "$git_display" ]]; then
-                printf "      ├─ [90m%d visits%s yesterday[0m [93m%s[0m
-"                     "$count" "$time_display" "$git_display"
-            else
-                printf "      ├─ [90m%d visits%s yesterday[0m
-"                     "$count" "$time_display"
+        # Create the jump alias
+        eval "alias wj${i}='cd \"${dir/#\~/$HOME}\"'"
+        i=$((i + 1))
+        
+        # Display today's entry if it exists
+        if [[ -n "$today_entry" ]]; then
+            local t_count=$(echo "$today_entry" | cut -d'|' -f2)
+            local t_time=$(echo "$today_entry" | cut -d'|' -f3)
+            local t_git=$(echo "$today_entry" | cut -d'|' -f4)
+            
+            [[ -z "$t_time" ]] && t_time=0
+            [[ -z "$t_git" ]] && t_git=0
+            
+            local time_display=""
+            local git_display=""
+            
+            if [[ $t_time -gt 0 ]]; then
+                time_display=" · $(_freq_dirs_format_time $t_time)"
             fi
-        else
-            # Color based on activity score (visits * time)
-            local activity_score=$((count * time / 60))  # visits * minutes
+            
+            if [[ $t_git -gt 0 ]]; then
+                git_display="[$t_git commits]"
+            fi
+            
+            # Color based on activity
             local visits_color=""
             local time_color=""
             
-            # Color for visits count
-            if [[ $count -gt 10 ]]; then
+            if [[ $t_count -gt 10 ]]; then
                 visits_color="[91m"  # Bright red for very frequent
-            elif [[ $count -gt 5 ]]; then
+            elif [[ $t_count -gt 5 ]]; then
                 visits_color="[33m"  # Yellow for frequent
-            elif [[ $count -gt 2 ]]; then
+            elif [[ $t_count -gt 2 ]]; then
                 visits_color="[92m"  # Bright green for moderate
             else
                 visits_color="[36m"  # Cyan for low
             fi
             
-            # Color for time
-            if [[ $time -gt 3600 ]]; then
+            if [[ $t_time -gt 3600 ]]; then
                 time_color="[31m"  # Red for > 1 hour
-            elif [[ $time -gt 1800 ]]; then
+            elif [[ $t_time -gt 1800 ]]; then
                 time_color="[91m"  # Bright red for > 30 min
-            elif [[ $time -gt 600 ]]; then
+            elif [[ $t_time -gt 600 ]]; then
                 time_color="[93m"  # Bright yellow for > 10 min
             else
                 time_color="[92m"  # Green for < 10 min
@@ -1876,18 +2079,44 @@ wfreq() {
             
             if [[ -n "$git_display" ]]; then
                 printf "      ├─ %s%d visits[0m · %s%s[0m today [38;5;220m%s[0m
-"                     "$visits_color" "$count" "$time_color" "$(_freq_dirs_format_time $time)" "$git_display"
+"                     "$visits_color" "$t_count" "$time_color" "$time_display" "$git_display"
             else
                 printf "      ├─ %s%d visits[0m · %s%s[0m today
-"                     "$visits_color" "$count" "$time_color" "$(_freq_dirs_format_time $time)"
+"                     "$visits_color" "$t_count" "$time_color" "$time_display"
             fi
         fi
         
-        # Create the jump alias dynamically
-        eval "alias wj${i}='cd \"${dir/#\~/$HOME}\"'"
-        
-        i=$((i + 1))
+        # Display yesterday's entry if it exists
+        if [[ -n "$yesterday_entry" ]]; then
+            local y_count=$(echo "$yesterday_entry" | cut -d'|' -f2)
+            local y_time=$(echo "$yesterday_entry" | cut -d'|' -f3)
+            local y_git=$(echo "$yesterday_entry" | cut -d'|' -f4)
+            
+            [[ -z "$y_time" ]] && y_time=0
+            [[ -z "$y_git" ]] && y_git=0
+            
+            local time_display=""
+            local git_display=""
+            
+            if [[ $y_time -gt 0 ]]; then
+                time_display=" · $(_freq_dirs_format_time $y_time)"
+            fi
+            
+            if [[ $y_git -gt 0 ]]; then
+                git_display="[$y_git commits]"
+            fi
+            
+            if [[ -n "$git_display" ]]; then
+                printf "      ├─ [90m%d visits%s yesterday[0m [93m%s[0m
+"                     "$y_count" "$time_display" "$git_display"
+            else
+                printf "      ├─ [90m%d visits%s yesterday[0m
+"                     "$y_count" "$time_display"
+            fi
+        fi
     done <<< "$merged_data"
+    
+    rm -f "$grouped_data"
     
     echo ""
     echo "💡 Commands: wfreq | wfreq --insights | wfreq --config"

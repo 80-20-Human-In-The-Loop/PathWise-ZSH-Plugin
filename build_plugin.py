@@ -1074,41 +1074,50 @@ def generate_data_merge():
 _freq_dirs_get_merged_data() {
     local show_count="${1:-$FREQ_SHOW_COUNT}"
     local merged_file=$(mktemp)
+    local sorted_file=$(mktemp)
     
-    # Add today's data with "today" marker
+    # Add today's data with "today" marker and priority weight
     if [[ -s "$FREQ_DIRS_TODAY" ]]; then
         while IFS='|' read -r dir count time; do
             [[ -z "$time" ]] && time=0
             local git_count=$(_freq_dirs_get_git_count "$dir")
-            echo "${dir}|${count}|${time}|${git_count}|today" >> "$merged_file"
+            # Add priority weight (2 for today) as first field for sorting
+            echo "2|${dir}|${count}|${time}|${git_count}|today" >> "$merged_file"
         done < "$FREQ_DIRS_TODAY"
     fi
     
-    # Add yesterday's data with "yesterday" marker (only if not already in today)
+    # Add yesterday's data with "yesterday" marker - allow dual entries
     if [[ -s "$FREQ_DIRS_YESTERDAY" ]]; then
         while IFS='|' read -r dir count time; do
             [[ -z "$time" ]] && time=0
-            # Use faster method to check if directory already exists
-            if [[ ! -s "$FREQ_DIRS_TODAY" ]] || ! grep -qF "${dir}|" "$FREQ_DIRS_TODAY" 2>/dev/null; then
-                echo "${dir}|${count}|${time}|0|yesterday" >> "$merged_file"
-            fi
+            # Add priority weight (1 for yesterday) as first field for sorting
+            # Note: We now allow yesterday's data even if directory exists in today
+            echo "1|${dir}|${count}|${time}|0|yesterday" >> "$merged_file"
         done < "$FREQ_DIRS_YESTERDAY"
     fi
     
-    # Sort based on configuration
+    # Sort based on configuration with period priority
     case "$FREQ_SORT_BY" in
         visits)
-            sort -t'|' -k2 -rn "$merged_file" | head -n "$show_count"
+            # Sort by: 1) period weight (today first), 2) visit count
+            sort -t'|' -k1,1rn -k3,3rn "$merged_file" > "$sorted_file"
             ;;
         commits)
-            sort -t'|' -k4 -rn "$merged_file" | head -n "$show_count"
+            # Sort by: 1) period weight (today first), 2) git commits
+            sort -t'|' -k1,1rn -k5,5rn "$merged_file" > "$sorted_file"
             ;;
         time|*)
-            sort -t'|' -k3 -rn "$merged_file" | head -n "$show_count"
+            # Sort by: 1) period weight (today first), 2) time spent
+            sort -t'|' -k1,1rn -k4,4rn "$merged_file" > "$sorted_file"
             ;;
     esac
     
-    rm -f "$merged_file"
+    # Remove the priority weight field - don't limit here, let display handle it
+    while IFS='|' read -r weight dir count time git_count period; do
+        echo "${dir}|${count}|${time}|${git_count}|${period}"
+    done < "$sorted_file"
+    
+    rm -f "$merged_file" "$sorted_file"
 }
 '''
 
@@ -1151,8 +1160,6 @@ def generate_freq_command():
 # Function to get a random tip with category
 _freq_dirs_get_random_tip() {{
     local num_tips=${{#PATHWISE_TIPS[@]}}
-    # Seed RANDOM with current time for better randomization  
-    RANDOM=$SECONDS
     # Zsh arrays are 1-indexed
     local random_index=$((RANDOM % num_tips + 1))
     local tip_with_category="${{PATHWISE_TIPS[$random_index]}}"
@@ -1161,7 +1168,7 @@ _freq_dirs_get_random_tip() {{
     local category="${{tip_with_category%%:*}}"
     local tip="${{tip_with_category#*:}}"
     
-    # Capitalize and format category name
+    # Capitalize and format category name (handle underscores)
     case "$category" in
         pathwise) category="PathWise" ;;
         zsh) category="Zsh" ;;
@@ -1169,6 +1176,27 @@ _freq_dirs_get_random_tip() {{
         productivity) category="Productivity" ;;
         git) category="Git" ;;
         advanced) category="Advanced" ;;
+        bash_strings) category="Bash Strings" ;;
+        bash_arrays) category="Bash Arrays" ;;
+        bash_loops) category="Bash Loops" ;;
+        bash_file_handling) category="Bash Files" ;;
+        bash_conditionals) category="Bash Conditionals" ;;
+        bash_variables) category="Bash Variables" ;;
+        bash_arithmetic) category="Bash Math" ;;
+        bash_traps) category="Bash Traps" ;;
+        bash_terminal) category="Bash Terminal" ;;
+        bash_internals) category="Bash Internals" ;;
+        bash_other) category="Bash Tips" ;;
+        tmux) category="Tmux" ;;
+        terminal_features) category="Terminal" ;;
+        ssh) category="SSH" ;;
+        cli_tools) category="CLI Tools" ;;
+        docker) category="Docker" ;;
+        performance) category="Performance" ;;
+        vim_nano) category="Editor" ;;
+        security) category="Security" ;;
+        networking) category="Network" ;;
+        packages) category="Packages" ;;
         *) category="${{(C)category}}" ;;  # Capitalize first letter
     esac
     
@@ -1421,58 +1449,83 @@ wfreq() {{
     echo "PathWise Directory Frequency:"
     echo ""
     
-    # Display and create aliases
+    # Display and create aliases - properly group dual entries
     local i=1
+    local dir_count=0  # Track number of unique directories shown
+    
+    # Load config to get show_count
+    _freq_dirs_load_config
+    
+    # Pre-process: Group all entries by directory
+    local grouped_data=$(mktemp)
+    local processed_dirs=""
+    
+    # Process each unique directory in order
     while IFS='|' read -r dir count time git_count period; do
-        local display_dir="$dir"
-        local time_display=""
-        local git_display=""
-        
-        [[ -z "$time" ]] && time=0
-        [[ -z "$git_count" ]] && git_count=0
-        
-        if [[ $time -gt 0 ]]; then
-            time_display=" · $(_freq_dirs_format_time $time)"
+        # Skip if we've already processed this directory
+        if echo "$processed_dirs" | grep -qF "|${{dir}}|"; then
+            continue
         fi
         
-        if [[ $git_count -gt 0 ]]; then
-            git_display="[$git_count commits]"
+        # Check if we've reached the display limit
+        if [[ $dir_count -ge $FREQ_SHOW_COUNT ]]; then
+            break  # Stop processing after showing configured number of directories
         fi
         
-        # Two-line format for better readability
-        printf "  \033[36m[wj%d]\033[0m %s\n" "$i" "$display_dir"
+        # Mark as processed
+        processed_dirs="${{processed_dirs}}|${{dir}}|"
+        dir_count=$((dir_count + 1))
         
-        if [[ "$period" == "yesterday" ]]; then
-            if [[ -n "$git_display" ]]; then
-                printf "      ├─ \033[90m%d visits%s yesterday\033[0m \033[93m%s\033[0m\n" \
-                    "$count" "$time_display" "$git_display"
-            else
-                printf "      ├─ \033[90m%d visits%s yesterday\033[0m\n" \
-                    "$count" "$time_display"
+        # Find all entries for this directory (both today and yesterday)
+        local today_entry=$(echo "$merged_data" | grep "^${{dir}}|.*|today$" | head -1)
+        local yesterday_entry=$(echo "$merged_data" | grep "^${{dir}}|.*|yesterday$" | head -1)
+        
+        # Display the directory header
+        printf "  \033[36m[wj%d]\033[0m %s\n" "$i" "$dir"
+        
+        # Create the jump alias
+        eval "alias wj${{i}}='cd \\"${{dir/#\\~/$HOME}}\\"'"
+        i=$((i + 1))
+        
+        # Display today's entry if it exists
+        if [[ -n "$today_entry" ]]; then
+            local t_count=$(echo "$today_entry" | cut -d'|' -f2)
+            local t_time=$(echo "$today_entry" | cut -d'|' -f3)
+            local t_git=$(echo "$today_entry" | cut -d'|' -f4)
+            
+            [[ -z "$t_time" ]] && t_time=0
+            [[ -z "$t_git" ]] && t_git=0
+            
+            local time_display=""
+            local git_display=""
+            
+            if [[ $t_time -gt 0 ]]; then
+                time_display=" · $(_freq_dirs_format_time $t_time)"
             fi
-        else
-            # Color based on activity score (visits * time)
-            local activity_score=$((count * time / 60))  # visits * minutes
+            
+            if [[ $t_git -gt 0 ]]; then
+                git_display="[$t_git commits]"
+            fi
+            
+            # Color based on activity
             local visits_color=""
             local time_color=""
             
-            # Color for visits count
-            if [[ $count -gt 10 ]]; then
+            if [[ $t_count -gt 10 ]]; then
                 visits_color="\033[91m"  # Bright red for very frequent
-            elif [[ $count -gt 5 ]]; then
+            elif [[ $t_count -gt 5 ]]; then
                 visits_color="\033[33m"  # Yellow for frequent
-            elif [[ $count -gt 2 ]]; then
+            elif [[ $t_count -gt 2 ]]; then
                 visits_color="\033[92m"  # Bright green for moderate
             else
                 visits_color="\033[36m"  # Cyan for low
             fi
             
-            # Color for time
-            if [[ $time -gt 3600 ]]; then
+            if [[ $t_time -gt 3600 ]]; then
                 time_color="\033[31m"  # Red for > 1 hour
-            elif [[ $time -gt 1800 ]]; then
+            elif [[ $t_time -gt 1800 ]]; then
                 time_color="\033[91m"  # Bright red for > 30 min
-            elif [[ $time -gt 600 ]]; then
+            elif [[ $t_time -gt 600 ]]; then
                 time_color="\033[93m"  # Bright yellow for > 10 min
             else
                 time_color="\033[92m"  # Green for < 10 min
@@ -1480,18 +1533,44 @@ wfreq() {{
             
             if [[ -n "$git_display" ]]; then
                 printf "      ├─ %s%d visits\033[0m · %s%s\033[0m today \033[38;5;220m%s\033[0m\n" \
-                    "$visits_color" "$count" "$time_color" "$(_freq_dirs_format_time $time)" "$git_display"
+                    "$visits_color" "$t_count" "$time_color" "$time_display" "$git_display"
             else
                 printf "      ├─ %s%d visits\033[0m · %s%s\033[0m today\n" \
-                    "$visits_color" "$count" "$time_color" "$(_freq_dirs_format_time $time)"
+                    "$visits_color" "$t_count" "$time_color" "$time_display"
             fi
         fi
         
-        # Create the jump alias dynamically
-        eval "alias wj${{i}}='cd \\"${{dir/#\\~/$HOME}}\\"'"
-        
-        i=$((i + 1))
+        # Display yesterday's entry if it exists
+        if [[ -n "$yesterday_entry" ]]; then
+            local y_count=$(echo "$yesterday_entry" | cut -d'|' -f2)
+            local y_time=$(echo "$yesterday_entry" | cut -d'|' -f3)
+            local y_git=$(echo "$yesterday_entry" | cut -d'|' -f4)
+            
+            [[ -z "$y_time" ]] && y_time=0
+            [[ -z "$y_git" ]] && y_git=0
+            
+            local time_display=""
+            local git_display=""
+            
+            if [[ $y_time -gt 0 ]]; then
+                time_display=" · $(_freq_dirs_format_time $y_time)"
+            fi
+            
+            if [[ $y_git -gt 0 ]]; then
+                git_display="[$y_git commits]"
+            fi
+            
+            if [[ -n "$git_display" ]]; then
+                printf "      ├─ \033[90m%d visits%s yesterday\033[0m \033[93m%s\033[0m\n" \
+                    "$y_count" "$time_display" "$git_display"
+            else
+                printf "      ├─ \033[90m%d visits%s yesterday\033[0m\n" \
+                    "$y_count" "$time_display"
+            fi
+        fi
     done <<< "$merged_data"
+    
+    rm -f "$grouped_data"
     
     echo ""
     echo "💡 Commands: wfreq | wfreq --insights | wfreq --config"
