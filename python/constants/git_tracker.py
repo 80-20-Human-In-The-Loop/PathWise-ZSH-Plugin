@@ -14,6 +14,18 @@ COMMIT_CATEGORIES = {
             'restore', 'reset', 'reverse', 'unmerge'
         ]
     },
+    'security': {
+        'priority': 95,
+        'emoji': '🔒',
+        'keywords': [
+            'security', 'vulnerability', 'cve', 'auth', 'authentication',
+            'authorization', 'permission', 'permissions', 'access', 'encryption',
+            'encrypt', 'decrypt', 'ssl', 'tls', 'https', 'certificate', 'cert',
+            'token', 'password', 'secret', 'secrets', 'leak', 'exposure',
+            'sanitize', 'escape', 'injection', 'xss', 'csrf', 'sqli', 'exploit',
+            'patch security', 'security fix', 'secure', 'harden', 'hardening'
+        ]
+    },
     'fix': {
         'priority': 90,
         'emoji': '🐛',
@@ -21,7 +33,10 @@ COMMIT_CATEGORIES = {
             'fix', 'fixed', 'fixes', 'bugfix', 'hotfix', 'patch', 'bug', 
             'resolve', 'resolved', 'resolves', 'solved', 'solve', 'issue',
             'error', 'crash', 'broken', 'fault', 'mistake', 'correct',
-            'repair', 'handle', 'prevent', 'avoid', 'typo', 'oops'
+            'repair', 'handle', 'prevent', 'avoid', 'typo', 'oops',
+            'troubleshoot', 'debug', 'debugging', 'debugged', 'workaround',
+            'mitigate', 'mitigation', 'address', 'addressed', 'addresses',
+            'remedy', 'remediate', 'correction', 'glitch', 'defect'
         ]
     },
     'feat': {
@@ -31,7 +46,21 @@ COMMIT_CATEGORIES = {
             'feat', 'feature', 'add', 'added', 'adds', 'new', 'implement',
             'implemented', 'introduce', 'introduced', 'create', 'created',
             'enhance', 'enhanced', 'extend', 'support', 'enable', 'allow',
-            'integrate', 'develop', 'include', 'provide', 'setup'
+            'integrate', 'develop', 'include', 'provide', 'setup',
+            'capability', 'functionality', 'improvement', 'innovation',
+            'addition', 'establish', 'build', 'construct', 'design'
+        ]
+    },
+    'accessibility': {
+        'priority': 75,
+        'emoji': '♿',
+        'keywords': [
+            'a11y', 'accessibility', 'accessible', 'aria', 'wcag',
+            'screen reader', 'screenreader', 'keyboard', 'keyboard navigation',
+            'contrast', 'alt text', 'alt', 'alternative text', 'semantic',
+            'focus', 'tab order', 'tabindex', 'assistive', 'disability',
+            'inclusive', 'usability', 'voice', 'blind', 'deaf', 'impair',
+            'handicap', 'ada', 'compliance', 'section 508'
         ]
     },
     'perf': {
@@ -41,7 +70,22 @@ COMMIT_CATEGORIES = {
             'perf', 'performance', 'optimize', 'optimized', 'optimization',
             'faster', 'speed', 'speedup', 'improve', 'boost', 'accelerate',
             'efficient', 'reduce', 'decreased', 'cache', 'lazy', 'quick',
-            'enhance performance', 'reduce memory', 'reduce time'
+            'enhance performance', 'reduce memory', 'reduce time',
+            'throttle', 'debounce', 'memoize', 'memoization', 'parallelize',
+            'parallel', 'async', 'asynchronous', 'concurrent', 'streaming',
+            'buffer', 'batch', 'lightweight', 'minimize', 'shrink'
+        ]
+    },
+    'i18n': {
+        'priority': 65,
+        'emoji': '🌍',
+        'keywords': [
+            'i18n', 'l10n', 'internationalization', 'localization',
+            'translation', 'translate', 'translated', 'locale', 'locales',
+            'language', 'languages', 'multilingual', 'multilanguage',
+            'globalization', 'regionalization', 'culture', 'cultures',
+            'rtl', 'ltr', 'bidi', 'unicode', 'charset', 'encoding',
+            'locale-specific', 'country', 'region', 'timezone'
         ]
     },
     'refactor': {
@@ -51,7 +95,22 @@ COMMIT_CATEGORIES = {
             'refactor', 'refactored', 'refactoring', 'restructure', 'rewrite',
             'rework', 'simplify', 'extract', 'move', 'moved', 'rename',
             'renamed', 'reorganize', 'clean', 'cleanup', 'improve', 'decouple',
-            'abstract', 'consolidate', 'deduplicate', 'modularize', 'split'
+            'abstract', 'consolidate', 'deduplicate', 'modularize', 'split',
+            'modernize', 'streamline', 'normalize', 'standardize', 'unify',
+            'dry', 'optimize structure', 'reduce complexity', 'clarify',
+            'tidy', 'polish', 'revise', 'rearrange', 'redesign'
+        ]
+    },
+    'deprecation': {
+        'priority': 55,
+        'emoji': '⚠️',
+        'keywords': [
+            'deprecate', 'deprecated', 'deprecating', 'deprecation',
+            'obsolete', 'obsoleted', 'legacy', 'remove deprecated',
+            'sunset', 'sunsetting', 'end-of-life', 'eol', 'retire',
+            'retired', 'retiring', 'phase out', 'phasing out', 'discontinue',
+            'discontinued', 'supersede', 'superseded', 'replace deprecated',
+            'old api', 'legacy code', 'backward compatible', 'breaking change'
         ]
     },
     'test': {
@@ -61,7 +120,10 @@ COMMIT_CATEGORIES = {
             'test', 'tests', 'testing', 'spec', 'specs', 'coverage',
             'unit', 'integration', 'e2e', 'jest', 'pytest', 'mock',
             'stub', 'fixture', 'assertion', 'expect', 'should', 'verify',
-            'validate', 'check', 'ensure', 'prove', 'tdd', 'bdd'
+            'validate', 'check', 'ensure', 'prove', 'tdd', 'bdd',
+            'snapshot', 'regression', 'smoke test', 'smoke', 'sanity check',
+            'sanity', 'acceptance', 'functional', 'scenario', 'suite',
+            'testcase', 'test case', 'qa', 'quality assurance'
         ]
     },
     'build': {
@@ -81,7 +143,10 @@ COMMIT_CATEGORIES = {
             'ci', 'cd', 'pipeline', 'github actions', 'actions', 'travis',
             'jenkins', 'circle', 'circleci', 'deploy', 'deployment',
             'release', 'publish', 'docker', 'kubernetes', 'k8s', 'helm',
-            'terraform', 'ansible', 'workflow', 'automation'
+            'terraform', 'ansible', 'workflow', 'automation',
+            'continuous', 'staging', 'production', 'rollout', 'canary',
+            'blue-green', 'artifact', 'artifacts', 'container', 'orchestration',
+            'infrastructure', 'iac', 'gitops', 'devops', 'cicd'
         ]
     },
     'docs': {
@@ -112,6 +177,27 @@ COMMIT_CATEGORIES = {
             'dependencies', 'dependency', 'version', 'maintain', 'routine',
             'housekeeping', 'misc', 'minor', 'tweak', 'adjust', 'modify',
             'prepare', 'setup', 'config', 'configure', 'init', 'bootstrap'
+        ]
+    },
+    'merge': {
+        'priority': 1,
+        'emoji': '🔄',
+        'keywords': [
+            'merge', 'merged', 'merging', 'merge branch', 'merge pull',
+            'merge pr', 'merge conflict', 'resolve conflict', 'conflict',
+            'rebase', 'rebased', 'rebasing', 'cherry-pick', 'cherry pick',
+            'cherrypick', 'squash', 'squashed', 'integrate branch'
+        ]
+    },
+    'wip': {
+        'priority': 0,
+        'emoji': '🚧',
+        'keywords': [
+            'wip', 'work in progress', 'working', 'todo', 'temp',
+            'tmp', 'temporary', 'hack', 'xxx', 'fixme', 'fix me',
+            'draft', 'incomplete', 'unfinished', 'in progress',
+            'partial', 'checkpoint', 'savepoint', 'do not merge',
+            'dont merge', 'not ready', 'experimental', 'experiment'
         ]
     }
 }
