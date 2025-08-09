@@ -1957,10 +1957,28 @@ _freq_dirs_export_toml() {
 def generate_hooks():
     """Generate shell hooks and initialization"""
     return '''
+# Startup display function
+_FREQ_DIRS_SHOWN=false
+_show_freq_dirs_once() {
+    if [[ "$_FREQ_DIRS_SHOWN" == "true" ]]; then
+        return
+    fi
+    _FREQ_DIRS_SHOWN=true
+    
+    # Quick check for data
+    if [[ -s "$HOME/.frequent_dirs.today" ]] || [[ -s "$HOME/.frequent_dirs.yesterday" ]]; then
+        wfreq
+    fi
+    
+    # Remove from precmd after showing
+    precmd_functions=(${precmd_functions[@]/_show_freq_dirs_once})
+}
+
 # Hook into directory change
 autoload -U add-zsh-hook
 add-zsh-hook chpwd _freq_dirs_update
 add-zsh-hook zshexit _freq_dirs_exit
+add-zsh-hook precmd _show_freq_dirs_once
 
 # Load config first to check if tool tracking is enabled
 _freq_dirs_load_config
@@ -1978,8 +1996,6 @@ _freq_dirs_setup_aliases
 
 # Initialize session tracking
 FREQ_SESSION_START=$(date +%s)
-
-# Startup display is handled in .zshrc for priority visibility
 '''
 
 def main():

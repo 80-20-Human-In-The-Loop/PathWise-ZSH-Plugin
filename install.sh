@@ -14,9 +14,29 @@ NC=$'\033[0m' # No Color
 # Parse command line arguments
 LOCAL_INSTALL=false
 UPDATE_MODE=false
+REPAIR_MODE=false
 
-# Check for update mode first
-if [ "$1" = "update" ] || [ "$1" = "--update" ]; then
+# Check for repair mode
+if [ "$1" = "repair" ] || [ "$1" = "--repair" ]; then
+    REPAIR_MODE=true
+    echo -e "${YELLOW}🔧 Repair mode: Cleaning up configuration...${NC}"
+    
+    # Clean up any broken configurations from .zshrc
+    if [ -f "$HOME/.zshrc" ]; then
+        # Remove any legacy startup display configurations
+        sed -i.bak '/# PathWise startup display/,/add-zsh-hook precmd _show_freq_dirs_once/d' "$HOME/.zshrc" 2>/dev/null
+        sed -i.bak '/_FREQ_DIRS_SHOWN=false/,/^}/d' "$HOME/.zshrc" 2>/dev/null
+        sed -i.bak '/_show_freq_dirs_once/d' "$HOME/.zshrc" 2>/dev/null
+        
+        # Clean up duplicate pathwise entries in plugins
+        sed -i.bak 's/pathwise pathwise/pathwise/g' "$HOME/.zshrc" 2>/dev/null
+        
+        echo -e "${GREEN}✓${NC} Cleaned up .zshrc configuration"
+    fi
+    
+    # Continue with normal installation
+    UPDATE_MODE=false
+elif [ "$1" = "update" ] || [ "$1" = "--update" ]; then
     UPDATE_MODE=true
     if [ "$2" = "local" ]; then
         LOCAL_INSTALL=true
@@ -164,9 +184,15 @@ if [ "$UPDATE_MODE" = false ]; then
         if grep -q "^plugins=" "$HOME/.zshrc"; then
             # Check if pathwise is already in plugins
             if ! grep -q "pathwise" "$HOME/.zshrc"; then
-                # Add pathwise to existing plugins line
-                sed -i.bak '/^plugins=/s/)/ pathwise)/' "$HOME/.zshrc"
-                echo -e "${GREEN}✓${NC} Added PathWise to Oh My Zsh plugins"
+                # Add pathwise to existing plugins line more safely
+                # Handle various formats: plugins=(...) or plugins=(... )
+                if sed -i.bak 's/^plugins=(\(.*\))/plugins=(\1 pathwise)/' "$HOME/.zshrc" 2>/dev/null; then
+                    echo -e "${GREEN}✓${NC} Added PathWise to Oh My Zsh plugins"
+                else
+                    echo -e "${YELLOW}⚠${NC} Could not automatically add to plugins"
+                    echo "Please add 'pathwise' to your plugins manually:"
+                    echo "  plugins=(... pathwise)"
+                fi
             else
                 echo -e "${GREEN}✓${NC} PathWise already in plugins list"
             fi
@@ -185,33 +211,6 @@ if [ "$UPDATE_MODE" = false ]; then
         else
             echo -e "${GREEN}✓${NC} PathWise already configured in .zshrc"
         fi
-    fi
-    
-    # Add startup display configuration
-    if ! grep -q "_show_freq_dirs_once" "$HOME/.zshrc"; then
-        echo -e "${BLUE}→${NC} Configuring startup display..."
-        cat >> "$HOME/.zshrc" << 'EOF'
-
-# PathWise startup display (shows after prompt loads)
-_FREQ_DIRS_SHOWN=false
-_show_freq_dirs_once() {
-    if [[ "$_FREQ_DIRS_SHOWN" == "true" ]]; then
-        return
-    fi
-    _FREQ_DIRS_SHOWN=true
-    
-    # Quick check for data
-    if [[ -s "$HOME/.frequent_dirs.today" ]] || [[ -s "$HOME/.frequent_dirs.yesterday" ]]; then
-        wfreq
-    fi
-    
-    # Remove from precmd after showing
-    precmd_functions=(${precmd_functions[@]/_show_freq_dirs_once})
-}
-autoload -Uz add-zsh-hook
-add-zsh-hook precmd _show_freq_dirs_once
-EOF
-        echo -e "${GREEN}✓${NC} Configured startup display"
     fi
 fi
 

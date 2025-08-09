@@ -64,8 +64,14 @@ if [ -f "$HOME/.zshrc" ]; then
     if [ "$OMZ_INSTALL" = true ]; then
         # Remove from Oh My Zsh plugins list
         if grep -q "pathwise" "$HOME/.zshrc"; then
-            # Remove pathwise from plugins list (handles various formats)
-            sed -i.tmp 's/ pathwise//g; s/pathwise //g; s/(pathwise)/()/g' "$HOME/.zshrc"
+            # Remove pathwise from plugins list more carefully
+            # Handle: plugins=(... pathwise ...) or plugins=(pathwise ...) or plugins=(... pathwise)
+            sed -i.tmp 's/plugins=(\(.*\) pathwise \(.*\))/plugins=(\1 \2)/g' "$HOME/.zshrc"
+            sed -i.tmp 's/plugins=(\(.*\) pathwise)/plugins=(\1)/g' "$HOME/.zshrc"
+            sed -i.tmp 's/plugins=(pathwise \(.*\))/plugins=(\1)/g' "$HOME/.zshrc"
+            sed -i.tmp 's/plugins=(pathwise)/plugins=()/g' "$HOME/.zshrc"
+            # Clean up double spaces that might be left
+            sed -i.tmp 's/plugins=(\(.*\)  \(.*\))/plugins=(\1 \2)/g' "$HOME/.zshrc"
             echo -e "${GREEN}✓${NC} Removed from Oh My Zsh plugins"
         fi
     else
@@ -78,11 +84,15 @@ if [ -f "$HOME/.zshrc" ]; then
         fi
     fi
     
-    # Remove startup display configuration
+    # Remove any legacy startup display configuration from older versions
     if grep -q "_show_freq_dirs_once" "$HOME/.zshrc"; then
-        # Remove the entire startup display block
+        # Remove the entire startup display block from older installations
         sed -i.tmp '/# PathWise startup display/,/add-zsh-hook precmd _show_freq_dirs_once/d' "$HOME/.zshrc"
-        echo -e "${GREEN}✓${NC} Removed startup display configuration"
+        # Also remove just the function definition if it exists standalone
+        sed -i.tmp '/_FREQ_DIRS_SHOWN=false/,/^}/d' "$HOME/.zshrc"
+        # Remove any remaining references
+        sed -i.tmp '/_show_freq_dirs_once/d' "$HOME/.zshrc"
+        echo -e "${GREEN}✓${NC} Removed legacy startup display configuration"
     fi
     
     # Clean up temp files
