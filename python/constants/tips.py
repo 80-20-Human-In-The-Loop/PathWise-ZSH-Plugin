@@ -18,7 +18,7 @@ TIPS = {
         "PathWise tracks both visits and time - giving you complete navigation insights",
         "Configure minimum time to avoid tracking quick directory traversals",
         "Use 'wfreq --tools' to see which tools you use most in each directory",
-        "Tool tracking reveals your workflow - see if you edit, compile, or debug more in each project",
+        "Tool tracking reveals your workflow - see if you edit, compile, or debug more",
         "Export your work patterns with 'wfreq --export' to share with teammates",
         "Use 'wfreq --export -filter=python' to export only Python-related project data",
         "Export current project with 'wfreq --export project.toml -filter=.' for focused reports",
@@ -27,7 +27,6 @@ TIPS = {
         "Filter exports by directory patterns to create focused work analytics",
         "Exported TOML files contain all your insights: time patterns, tools, and navigation flows",
     ],
-    
     "zsh": [
         "Use 'cd -' to quickly jump back to your previous directory",
         "Press Ctrl+R to search through your command history interactively",
@@ -38,14 +37,13 @@ TIPS = {
         "Use 'which <command>' to find where a command is located",
         "Press Alt+. to insert the last argument from previous command",
         "Use 'dirs -v' to see your directory stack, 'cd ~N' to jump to entry N",
-        "Enable case-insensitive completion with 'zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'",
+        "Enable case-insensitive completion: 'zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'",
         "Use 'bindkey' to see all keyboard shortcuts in your current shell",
         "Press Ctrl+L to clear the screen (faster than typing 'clear')",
         "Use 'fc' to edit and re-run the last command in your editor",
         "Set CDPATH to add common base directories for quick navigation",
         "Use parameter expansion: ${var:-default} for default values",
     ],
-    
     "linux": [
         "Use 'ls -lah' to see all files with human-readable sizes",
         "Press Ctrl+Z to suspend a process, 'bg' to background it, 'fg' to foreground",
@@ -63,7 +61,6 @@ TIPS = {
         "Create multiple directories at once: 'mkdir -p parent/child/grandchild'",
         "Use 'ln -s target link' to create symbolic links for easy access",
     ],
-    
     "productivity": [
         "Organize projects in a consistent directory structure for faster navigation",
         "Use descriptive directory names - future you will thank present you",
@@ -81,7 +78,6 @@ TIPS = {
         "Keep a 'notes.md' file in project roots for quick thoughts",
         "Learn keyboard shortcuts for your most-used applications",
     ],
-    
     "git": [
         "Use 'git status' frequently to understand your repository state",
         "Run 'git diff --staged' to review changes before committing",
@@ -99,7 +95,6 @@ TIPS = {
         "Run 'git reflog' to recover lost commits or branches",
         "Tag releases: 'git tag -a v1.0.0 -m \"Version 1.0.0\"'",
     ],
-    
     "advanced": [
         "Use process substitution: 'diff <(ls dir1) <(ls dir2)'",
         "Chain commands: '&&' for success, '||' for failure, ';' for always",
@@ -117,7 +112,6 @@ TIPS = {
         "Profile shell startup: 'zsh -x' to debug slow initialization",
         "Use 'compdef' to create custom completions for your functions",
     ],
-    
     "bash_strings": [
         "Trim leading/trailing spaces: '${var##+([[:space:]])}' and '${var%%+([[:space:]])}'",
         "Get string length: '${#var}' returns character count without wc",
@@ -137,7 +131,6 @@ TIPS = {
         "Percent-encode string: Use printf '%s' \"$var\" | od -An -tx1 | tr ' ' %",
         "Regex match: '[[ $var =~ ^[0-9]+$ ]]' checks if string is all digits",
     ],
-    
     "bash_arrays": [
         "Reverse array: 'for ((i=${#arr[@]}-1; i>=0; i--)); do rev+=(\"${arr[i]}\"); done'",
         "Remove duplicates: Keep unique values with associative array as set",
@@ -145,7 +138,6 @@ TIPS = {
         "Cycle through array: Use modulo '${arr[i++ % ${#arr[@]}]}' for infinite loop",
         "Toggle between values: 'var=$((1-var))' switches between 0 and 1",
     ],
-    
     "bash_loops": [
         "Loop over range: 'for i in {1..10}; do ...; done' iterates 1 to 10",
         "Variable range: 'for ((i=start; i<=end; i++)); do ...; done' with variables",
@@ -154,7 +146,6 @@ TIPS = {
         "Loop file contents: 'while IFS= read -r line; do ...; done < file'",
         "Loop over files: 'for f in *.txt; do [[ -e $f ]] || continue; ...; done'",
     ],
-    
     "bash_file_handling": [
         "Read file to string: 'var=$(<file)' faster than cat for variable assignment",
         "Read file to array: 'readarray -t arr < file' or mapfile for line array",
@@ -165,24 +156,20 @@ TIPS = {
         "Create temp file: 'tmp=$(mktemp) || exit 1' with proper error handling",
         "Extract path parts: '${file##*/}' for basename, '${file%/*}' for dirname",
     ],
-    
     "bash_conditionals": [
         "File tests: '[[ -f $file ]]' for regular file, '-d' for directory, '-e' exists",
         "String empty check: '[[ -z $var ]]' tests if empty, '-n' for non-empty",
         "Ternary operator: 'result=${var:+set}' expands to 'set' if var is non-empty",
         "Check if in array: Loop and test each element or use associative array",
     ],
-    
     "bash_variables": [
         "Name reference: 'declare -n ref=var' creates reference to another variable",
         "Default value: '${var:-default}' uses default if var is unset or empty",
     ],
-    
     "bash_arithmetic": [
         "Math operations: '((result = 5 + 3 * 2))' evaluates arithmetic expressions",
         "Sequence generation: 'for i in {1..100}; do ...; done' without seq command",
     ],
-    
     "bash_traps": [
         "Cleanup on exit: 'trap cleanup EXIT' runs cleanup function on script exit",
         "Ignore Ctrl+C: 'trap '' INT' ignores interrupt signal (SIGINT)",
@@ -190,20 +177,17 @@ TIPS = {
         "Run in background: 'command &' runs async, 'wait' to synchronize",
         "Timeout command: Use timeout with trap for time-limited execution",
     ],
-    
     "bash_terminal": [
         "Get terminal size: 'read -r LINES COLUMNS < <(stty size)' without tput",
         "Move cursor: 'printf '\\e[5;10H'' moves to line 5, column 10",
         "Clear screen: 'printf '\\e[2J\\e[H'' clears and homes cursor",
     ],
-    
     "bash_internals": [
         "Get function name: '${FUNCNAME[0]}' returns current function name",
         "Get hostname: '${HOSTNAME:-$(hostname)}' without external command",
         "Brace expansion: '{1..10}' expands to '1 2 3 4 5 6 7 8 9 10'",
         "Check command type: 'type -t cmd' returns alias/function/builtin/file",
     ],
-    
     "bash_other": [
         "UUID generation: Read from /proc/sys/kernel/random/uuid if available",
         "Progress bar: Use printf with carriage return '\\r' to update same line",
@@ -213,9 +197,8 @@ TIPS = {
         "RGB to hex: 'printf '#%02x%02x%02x' $r $g $b' converts RGB to hex",
         "Pseudo-random: '$((RANDOM % 100))' gives 0-99, seed with RANDOM=seed",
     ],
-    
     "tmux": [
-        "Split horizontally: Ctrl+b % | Split vertically: Ctrl+b \"",
+        'Split horizontally: Ctrl+b % | Split vertically: Ctrl+b "',
         "Navigate panes: Ctrl+b + arrow keys for quick pane switching",
         "Create new window: Ctrl+b c | Switch windows: Ctrl+b 0-9",
         "Detach session: Ctrl+b d | Reattach: 'tmux attach'",
@@ -231,7 +214,6 @@ TIPS = {
         "Join panes: 'join-pane -s window.pane' merges panes",
         "Persist sessions: Use 'tmux-resurrect' plugin to save/restore sessions",
     ],
-    
     "terminal_features": [
         "Most terminals support Ctrl+Shift+T for new tab, Ctrl+Shift+W to close",
         "Click URLs: Hold Ctrl while clicking links in most modern terminals",
@@ -249,7 +231,6 @@ TIPS = {
         "Middle mouse button pastes selection buffer on Linux",
         "Ctrl+L clears screen while preserving scrollback history",
     ],
-    
     "ssh": [
         "SSH config: Create ~/.ssh/config for host aliases and settings",
         "Agent forwarding: 'ssh -A' forwards your SSH keys to remote host",
@@ -267,7 +248,6 @@ TIPS = {
         "Background tunnel: 'ssh -fNL 8080:localhost:80 server' runs in background",
         "Verbose mode: 'ssh -vvv' for debugging connection issues",
     ],
-    
     "cli_tools": [
         "fzf: Press Ctrl+R after installing fzf for fuzzy command history search",
         "ripgrep: 'rg pattern' is faster than grep and respects .gitignore",
@@ -285,7 +265,6 @@ TIPS = {
         "direnv: Auto-load environment variables per directory",
         "entr: 'ls *.py | entr -c python main.py' auto-runs on file changes",
     ],
-    
     "docker": [
         "Clean everything: 'docker system prune -a' removes all unused data",
         "Live logs: 'docker logs -f container' follows log output",
@@ -296,14 +275,13 @@ TIPS = {
         "Remove dangling images: 'docker image prune' cleans unnamed images",
         "List with formatting: 'docker ps --format \"table {{.Names}}\\t{{.Status}}\"'",
         "Stop all containers: 'docker stop $(docker ps -q)' halts everything",
-        "Volume backup: 'docker run --rm -v volume:/data -v $(pwd):/backup busybox tar czf /backup/backup.tar.gz /data'",
+        "Volume backup: 'docker run --rm -v vol:/data -v .:/backup busybox tar czf backup.tar.gz'",
         "Multi-stage builds: Use 'FROM image AS stage' for smaller final images",
         "Health checks: Add HEALTHCHECK to Dockerfile for container monitoring",
         "Use .dockerignore: Exclude files from build context for faster builds",
         "Layer caching: Order Dockerfile commands from least to most frequently changing",
         "Network debugging: 'docker run --rm -it nicolaka/netshoot' for network tools",
     ],
-    
     "performance": [
         "htop: Press F5 for tree view, F6 to sort by different columns",
         "iostat: 'iostat -x 1' shows detailed disk I/O statistics per second",
@@ -321,7 +299,6 @@ TIPS = {
         "tcpdump: 'sudo tcpdump -i any port 80' captures network packets",
         "time: 'time command' shows real/user/sys time for benchmarking",
     ],
-    
     "vim_nano": [
         "Vim: 'ci(' changes text inside parentheses, works with {, [, \", '",
         "Vim: '.' repeats last change - powerful for repetitive edits",
@@ -339,7 +316,6 @@ TIPS = {
         "Nano: Ctrl+_ goes to specific line number",
         "Micro: Modern nano alternative with mouse support and familiar keybindings",
     ],
-    
     "security": [
         "Check permissions: 'ls -la' shows full permissions, 'stat file' for details",
         "Fix permissions: 'chmod 600 ~/.ssh/id_rsa' secures private keys",
@@ -357,7 +333,6 @@ TIPS = {
         "File capabilities: 'getcap file' shows special capabilities",
         "umask: Set to 077 for secure default file permissions",
     ],
-    
     "networking": [
         "Test connectivity: 'ping -c 4 google.com' sends 4 packets",
         "Trace route: 'traceroute google.com' or 'mtr google.com' for interactive",
@@ -375,7 +350,6 @@ TIPS = {
         "Network usage: 'vnstat' shows network traffic statistics",
         "Local network scan: 'nmap -sn 192.168.1.0/24' finds devices",
     ],
-    
     "packages": [
         "APT: 'apt list --installed' shows all installed packages",
         "APT: 'apt-cache policy package' shows available versions",
@@ -392,30 +366,34 @@ TIPS = {
         "Check dependencies: 'ldd binary' shows shared library dependencies",
         "Alternative versions: 'update-alternatives --config java' switches versions",
         "Package contents: 'dpkg -L package' or 'rpm -ql package' lists files",
-    ]
+    ],
 }
+
 
 def get_random_tip() -> tuple[str, str]:
     """Get a random tip from a random category
-    
+
     Returns:
         tuple: (category, tip) - The category name and tip text
     """
     import random
-    category = random.choice(list(TIPS.keys()))
-    tip = random.choice(TIPS[category])
+
+    category = random.choice(list(TIPS.keys()))  # noqa: S311
+    tip = random.choice(TIPS[category])  # noqa: S311
     return category, tip
+
 
 def get_tip_from_category(category: str) -> str:
     """Get a random tip from a specific category
-    
+
     Args:
         category: The category to select from
-        
+
     Returns:
         str: A random tip from that category, or empty string if category doesn't exist
     """
     import random
+
     if category in TIPS:
-        return random.choice(TIPS[category])
+        return random.choice(TIPS[category])  # noqa: S311
     return ""

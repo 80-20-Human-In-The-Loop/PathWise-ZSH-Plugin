@@ -5,28 +5,31 @@ Generates the pathwise.plugin.zsh file from modular components with custom color
 """
 
 import sys
-import os
-import random
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from pathlib import Path
 
-from python.constants.colors import PathWiseColors, ANSIColor
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 from python.constants.git_tracker import COMMIT_CATEGORIES
 from python.constants.tips import TIPS
-from python.constants.tools import TRACKED_TOOLS, get_all_tracked_tools
-from python.logic.git_tracker import get_category_keywords_for_shell, get_random_keyword_suggestions
-import random
+from python.constants.tools import TRACKED_TOOLS
+from python.logic.git_tracker import (
+    get_category_keywords_for_shell,
+    get_random_keyword_suggestions,
+)
 
-def generate_header():
+
+def generate_header() -> str:
     """Generate plugin header with description"""
-    return '''#!/usr/bin/env zsh
+    return """#!/usr/bin/env zsh
 # PathWise - Frequent Directories Plugin with Time Tracking, Git Integration & Insights
 # Be Wise About Your Paths 🗺️
 # Tracks visited directories, time spent, git commits, and provides productivity insights
-'''
+"""
 
-def generate_data_files():
+
+def generate_data_files() -> str:
     """Generate data file path definitions"""
-    return '''
+    return """
 # Data files
 FREQ_DIRS_TODAY="${HOME}/.frequent_dirs.today"
 FREQ_DIRS_YESTERDAY="${HOME}/.frequent_dirs.yesterday"
@@ -38,11 +41,12 @@ FREQ_DIRS_PATTERNS="${HOME}/.frequent_dirs.patterns"
 FREQ_DIRS_GIT="${HOME}/.frequent_dirs.git"
 FREQ_DIRS_GIT_TODAY="${HOME}/.frequent_dirs.git.today"
 FREQ_DIRS_TOOLS="${HOME}/.frequent_dirs.tools"
-'''
+"""
 
-def generate_variables():
+
+def generate_variables() -> str:
     """Generate global variables and defaults"""
-    return '''
+    return """
 # Time tracking variables
 typeset -g FREQ_CURRENT_DIR=""
 typeset -g FREQ_ENTER_TIME=""
@@ -58,11 +62,12 @@ DEFAULT_MIN_TIME="5"  # Minimum seconds in directory to track
 DEFAULT_TRACK_GIT="true"
 DEFAULT_TRACK_TOOLS="true"
 DEFAULT_SORT_BY="time"  # Options: visits, time, commits
-'''
+"""
 
-def generate_file_init():
+
+def generate_file_init() -> str:
     """Generate file initialization code"""
-    return '''
+    return """
 # Initialize files if they don't exist
 [[ ! -f "$FREQ_DIRS_TODAY" ]] && touch "$FREQ_DIRS_TODAY"
 [[ ! -f "$FREQ_DIRS_YESTERDAY" ]] && touch "$FREQ_DIRS_YESTERDAY"
@@ -73,18 +78,19 @@ def generate_file_init():
 [[ ! -f "$FREQ_DIRS_GIT" ]] && touch "$FREQ_DIRS_GIT"
 [[ ! -f "$FREQ_DIRS_GIT_TODAY" ]] && touch "$FREQ_DIRS_GIT_TODAY"
 [[ ! -f "$FREQ_DIRS_TOOLS" ]] && touch "$FREQ_DIRS_TOOLS"
-'''
+"""
 
-def generate_config_functions():
+
+def generate_config_functions() -> str:
     """Generate configuration load/save functions"""
-    return '''
+    return """
 # Load configuration
 _freq_dirs_load_config() {
     # Load config file if it exists
     if [[ -f "$FREQ_DIRS_CONFIG" ]]; then
         source "$FREQ_DIRS_CONFIG"
     fi
-    
+
     # Set defaults for any missing values
     [[ -z "$FREQ_AUTO_RESET" ]] && FREQ_AUTO_RESET="${DEFAULT_AUTO_RESET}"
     [[ -z "$FREQ_RESET_HOUR" ]] && FREQ_RESET_HOUR="${DEFAULT_RESET_HOUR}"
@@ -109,18 +115,19 @@ FREQ_TRACK_TOOLS="${FREQ_TRACK_TOOLS}"
 FREQ_SORT_BY="${FREQ_SORT_BY}"
 EOF
 }
-'''
+"""
 
-def generate_utility_functions():
+
+def generate_utility_functions() -> str:
     """Generate utility functions like time formatting"""
-    return '''
+    return """
 # Format time duration for display
 _freq_dirs_format_time() {
     local seconds=$1
     local hours=$((seconds / 3600))
     local minutes=$(((seconds % 3600) / 60))
     local secs=$((seconds % 60))
-    
+
     if [[ $hours -gt 0 ]]; then
         echo "${hours}h ${minutes}m"
     elif [[ $minutes -gt 0 ]]; then
@@ -129,51 +136,67 @@ _freq_dirs_format_time() {
         echo "${secs}s"
     fi
 }
-'''
+"""
 
-def generate_git_functions():
+
+def generate_git_functions() -> str:
     """Generate git tracking and analysis functions"""
-    
+
     # Get keywords for each category
-    category_keywords = get_category_keywords_for_shell()
-    
+    get_category_keywords_for_shell()
+
     # Build the keyword definitions
     keyword_defs = []
-    for category in ['revert', 'fix', 'feat', 'perf', 'refactor', 'test', 'build', 'ci', 'docs', 'style', 'chore']:
-        keywords = ' '.join(COMMIT_CATEGORIES[category]['keywords'])  # Include ALL keywords
+    for category in [
+        "revert",
+        "fix",
+        "feat",
+        "perf",
+        "refactor",
+        "test",
+        "build",
+        "ci",
+        "docs",
+        "style",
+        "chore",
+    ]:
+        keywords = " ".join(
+            COMMIT_CATEGORIES[category]["keywords"]
+        )  # Include ALL keywords
         keyword_defs.append(f'    local {category}_keywords="{keywords}"')
-    
+
     # Get random suggestions for example
     suggestions = get_random_keyword_suggestions(3)
     suggestion_keywords = []
     for _, _, keyword in suggestions:
         suggestion_keywords.append(keyword)
-    
-    return f'''
+
+    return f"""
 # Track git commits
 _freq_dirs_track_git_commit() {{
     if [[ "$FREQ_TRACK_GIT" != "true" ]]; then
         return
     fi
-    
+
     # Check if we're in a git repository
     if ! git rev-parse --git-dir > /dev/null 2>&1; then
         return
     fi
-    
+
     local current_dir="${{PWD/#$HOME/~}}"
     local commit_hash=$(git rev-parse HEAD 2>/dev/null)
     local commit_msg=$(git log -1 --pretty=%s 2>/dev/null)
     local timestamp=$(date +%s)
-    
+
     # Record commit
     echo "${{current_dir}}|${{commit_hash}}|${{timestamp}}|${{commit_msg}}" >> "$FREQ_DIRS_GIT"
-    
+
     # Update today's git count
     if grep -q "^${{current_dir}}|" "$FREQ_DIRS_GIT_TODAY" 2>/dev/null; then
         local count=$(grep "^${{current_dir}}|" "$FREQ_DIRS_GIT_TODAY" | cut -d'|' -f2)
         local new_count=$((count + 1))
-        grep -v "^${{current_dir}}|" "$FREQ_DIRS_GIT_TODAY" > "${{FREQ_DIRS_GIT_TODAY}}.tmp" 2>/dev/null
+        grep -v "^${{current_dir}}|" "$FREQ_DIRS_GIT_TODAY" \\
+            > "${{FREQ_DIRS_GIT_TODAY}}.tmp" 2>/dev/null
         echo "${{current_dir}}|${{new_count}}" >> "${{FREQ_DIRS_GIT_TODAY}}.tmp"
         mv "${{FREQ_DIRS_GIT_TODAY}}.tmp" "$FREQ_DIRS_GIT_TODAY"
     else
@@ -196,26 +219,26 @@ _freq_dirs_categorize_commit() {{
     local msg_lower="$1"
     local best_category="other"
     local best_score=0
-    
+
     # Keywords for categorization (priority-ordered)
 {chr(10).join(keyword_defs)}
-    
+
     # Check each category and calculate scores
     local categories=(revert fix feat perf refactor test build ci docs style chore)
     local priorities=(100 90 80 70 60 50 40 30 20 10 5)
-    
+
     local i=1  # Zsh arrays are 1-indexed
     for category in "${{categories[@]}}"; do
         local keyword_count=0
         local keywords_var="${{category}}_keywords"
         eval "local keywords=\\$${{keywords_var}}"
-        
+
         for keyword in ${{=keywords}}; do  # Use word splitting in zsh
             if [[ "$msg_lower" == *"$keyword"* ]]; then
                 ((keyword_count++))
             fi
         done
-        
+
         if [[ $keyword_count -gt 0 ]]; then
             local score=$((keyword_count * priorities[$i]))  # Use $i for proper array access
             if [[ $score -gt $best_score ]]; then
@@ -225,7 +248,7 @@ _freq_dirs_categorize_commit() {{
         fi
         ((i++))
     done
-    
+
     echo "$best_category"
 }}
 
@@ -235,28 +258,28 @@ _freq_dirs_categorize_with_keyword() {{
     local best_category="other"
     local best_keyword=""
     local best_score=0
-    
+
     # Keywords for categorization (priority-ordered)
 {chr(10).join(keyword_defs)}
-    
+
     # Check each category and calculate scores
     local categories=(revert fix feat perf refactor test build ci docs style chore)
     local priorities=(100 90 80 70 60 50 40 30 20 10 5)
-    
+
     local i=1  # Zsh arrays are 1-indexed
     for category in "${{categories[@]}}"; do
         local keyword_count=0
         local found_keyword=""
         local keywords_var="${{category}}_keywords"
         eval "local keywords=\\$${{keywords_var}}"
-        
+
         for keyword in ${{=keywords}}; do  # Use word splitting in zsh
             if [[ "$msg_lower" == *"$keyword"* ]]; then
                 ((keyword_count++))
                 [[ -z "$found_keyword" ]] && found_keyword="$keyword"
             fi
         done
-        
+
         if [[ $keyword_count -gt 0 ]]; then
             local score=$((keyword_count * priorities[$i]))  # Use $i for proper array access
             if [[ $score -gt $best_score ]]; then
@@ -267,14 +290,14 @@ _freq_dirs_categorize_with_keyword() {{
         fi
         ((i++))
     done
-    
+
     echo "${{best_category}}|${{best_keyword}}"
 }}
 
 # Analyze git commit types
 _freq_dirs_analyze_commits() {{
     local temp_file=$(mktemp)
-    
+
     # Category counters and keywords
     local revert_count=0
     local fix_count=0
@@ -288,7 +311,7 @@ _freq_dirs_analyze_commits() {{
     local style_count=0
     local chore_count=0
     local other_count=0
-    
+
     # Store found keywords for each category
     local revert_keywords=""
     local fix_keywords=""
@@ -301,80 +324,82 @@ _freq_dirs_analyze_commits() {{
     local docs_keywords=""
     local style_keywords=""
     local chore_keywords=""
-    
+
     if [[ -s "$FREQ_DIRS_GIT" ]]; then
         # Get today's commits
         local today=$(date +%Y-%m-%d)
         local today_timestamp=$(date -d "$today" +%s)
-        
+
         while IFS='|' read -r dir hash timestamp msg; do
             [[ -z "$timestamp" ]] && continue
             [[ $timestamp -lt $today_timestamp ]] && continue
-            
+
             local msg_lower=$(echo "$msg" | tr '[:upper:]' '[:lower:]')
             local result=$(_freq_dirs_categorize_with_keyword "$msg_lower")
             local category=$(echo "$result" | cut -d'|' -f1)
             local keyword=$(echo "$result" | cut -d'|' -f2)
-            
+
             case "$category" in
-                revert) 
+                revert)
                     ((revert_count++))
                     [[ -n "$keyword" ]] && revert_keywords="$revert_keywords $keyword"
                     ;;
-                fix) 
+                fix)
                     ((fix_count++))
                     [[ -n "$keyword" ]] && fix_keywords="$fix_keywords $keyword"
                     ;;
-                feat) 
+                feat)
                     ((feat_count++))
                     [[ -n "$keyword" ]] && feat_keywords="$feat_keywords $keyword"
                     ;;
-                perf) 
+                perf)
                     ((perf_count++))
                     [[ -n "$keyword" ]] && perf_keywords="$perf_keywords $keyword"
                     ;;
-                refactor) 
+                refactor)
                     ((refactor_count++))
                     [[ -n "$keyword" ]] && refactor_keywords="$refactor_keywords $keyword"
                     ;;
-                test) 
+                test)
                     ((test_count++))
                     [[ -n "$keyword" ]] && test_keywords="$test_keywords $keyword"
                     ;;
-                build) 
+                build)
                     ((build_count++))
                     [[ -n "$keyword" ]] && build_keywords="$build_keywords $keyword"
                     ;;
-                ci) 
+                ci)
                     ((ci_count++))
                     [[ -n "$keyword" ]] && ci_keywords="$ci_keywords $keyword"
                     ;;
-                docs) 
+                docs)
                     ((docs_count++))
                     [[ -n "$keyword" ]] && docs_keywords="$docs_keywords $keyword"
                     ;;
-                style) 
+                style)
                     ((style_count++))
                     [[ -n "$keyword" ]] && style_keywords="$style_keywords $keyword"
                     ;;
-                chore) 
+                chore)
                     ((chore_count++))
                     [[ -n "$keyword" ]] && chore_keywords="$chore_keywords $keyword"
                     ;;
-                *) 
+                *)
                     ((other_count++))
                     ;;
             esac
         done < "$FREQ_DIRS_GIT"
-        
-        local total_commits=$((revert_count + fix_count + feat_count + perf_count + refactor_count + test_count + build_count + ci_count + docs_count + style_count + chore_count + other_count))
-        
+
+        local total_commits=$((revert_count + fix_count + feat_count + perf_count + \\
+            refactor_count + test_count + build_count + ci_count + docs_count + \\
+            style_count + chore_count + other_count))
+
         if [[ $total_commits -gt 0 ]]; then
             printf "\\033[94m📊 Git Activity Analysis:\\033[0m\\n" > "$temp_file"
             printf "  \\033[93mTotal commits today: %d\\033[0m\\n" "$total_commits" >> "$temp_file"
             echo "" >> "$temp_file"
             printf "  \\033[36mActivity breakdown:\\033[0m\\n" >> "$temp_file"
-            
+
             if [[ $revert_count -gt 0 ]]; then
                 local keyword=$(echo $revert_keywords | tr ' ' '\\n' | grep -v '^$' | shuf -n 1)
                 printf "    ⏪ Reverts: %d commits \\033[93m(%d%%) \\033[90m\\"%s\\"\\033[0m\\n" "$revert_count" $((revert_count * 100 / total_commits)) "$keyword" >> "$temp_file"
@@ -420,25 +445,25 @@ _freq_dirs_analyze_commits() {{
                 printf "    🔨 Chores: %d commits \\033[93m(%d%%) \\033[90m\\"%s\\"\\033[0m\\n" "$chore_count" $((chore_count * 100 / total_commits)) "$keyword" >> "$temp_file"
             fi
             [[ $other_count -gt 0 ]] && printf "    📝 Other: %d commits \\033[93m(%d%%)\\033[0m\\n" "$other_count" $((other_count * 100 / total_commits)) >> "$temp_file"
-            
+
             # Add keyword suggestions if there are "other" commits
             if [[ $other_count -gt 0 ]]; then
                 echo "" >> "$temp_file"
                 # Generate random suggestions dynamically at runtime using shuf
                 local all_keywords="fix feat add test refactor docs perf build ci style chore resolve implement create update improve optimize enhance cleanup bugfix hotfix patch feature testing spec coverage deploy release revert rollback configure setup install upgrade bump"
-                
+
                 # Use shuf to randomly select 3 keywords
                 local selected=$(echo $all_keywords | tr ' ' '\\n' | shuf -n 3)
                 local keyword1=$(echo "$selected" | sed -n '1p')
                 local keyword2=$(echo "$selected" | sed -n '2p')
                 local keyword3=$(echo "$selected" | sed -n '3p')
-                
+
                 printf "  💡 \\033[33mTip:\\033[0m Use keywords like " >> "$temp_file"
                 printf "\\033[91m%s\\033[0m, " "$keyword1" >> "$temp_file"
-                printf "\\033[92m%s\\033[0m, or " "$keyword2" >> "$temp_file"  
+                printf "\\033[92m%s\\033[0m, or " "$keyword2" >> "$temp_file"
                 printf "\\033[94m%s\\033[0m in commits\\n" "$keyword3" >> "$temp_file"
             fi
-            
+
             # Find most active git project
             echo "" >> "$temp_file"
             if [[ -s "$FREQ_DIRS_GIT_TODAY" ]]; then
@@ -451,56 +476,57 @@ _freq_dirs_analyze_commits() {{
             fi
         fi
     fi
-    
+
     cat "$temp_file"
     rm -f "$temp_file"
 }}
-'''
+"""
 
-def generate_tools_analysis_multi():
+
+def generate_tools_analysis_multi() -> str:
     """Generate function to analyze tools across multiple directories"""
-    return '''
+    return """
 # Analyze tool usage across top directories
 _freq_dirs_analyze_tools_multi() {
     if [[ "$FREQ_TRACK_TOOLS" != "true" ]]; then
         echo "Tool tracking is disabled. Enable it with: wfreq --config"
         return
     fi
-    
+
     if [[ ! -s "$FREQ_DIRS_TOOLS" ]]; then
         echo "No tool usage data yet. Start using tools to see analytics!"
         return
     fi
-    
+
     printf "\\033[94m🛠️  Tool Usage Across Top Directories\\033[0m\\n"
     printf "\\033[90m════════════════════════════════════\\033[0m\\n"
     echo ""
-    
+
     # Get merged data for top directories
     local merged_data=$(_freq_dirs_get_merged_data)
-    
+
     if [[ -z "$merged_data" ]]; then
         echo "No frequently visited directories yet."
         return
     fi
-    
+
     # Process each top directory
     while IFS='|' read -r dir count time git_count period; do
         local temp_file=$(mktemp)
-        
+
         # Get tools used in this directory
         grep "^${dir}|" "$FREQ_DIRS_TOOLS" 2>/dev/null > "$temp_file" || true
-        
+
         if [[ -s "$temp_file" ]]; then
             local total_uses=$(wc -l < "$temp_file")
-            
+
             printf "\\033[96m📁 %s\\033[0m \\033[90m(%d tool invocations)\\033[0m\\n" "$dir" "$total_uses"
-            
+
             # Top 5 tools for this directory
             awk -F'|' '{print $2}' "$temp_file" | sort | uniq -c | sort -rn | head -5 | while read count tool; do
                 local percent=$((count * 100 / total_uses))
                 local tool_info=$(grep "|${tool}|" "$temp_file" | head -1 | awk -F'|' '{print $3}')
-                
+
                 # Determine category label
                 local category_label=""
                 if [[ "$tool_info" == "custom" ]]; then
@@ -533,7 +559,7 @@ _freq_dirs_analyze_tools_multi() {
                 else
                     category_label="tool"
                 fi
-                
+
                 # Color based on percentage
                 local color="\\033[37m"  # Default white
                 if [[ $percent -gt 40 ]]; then
@@ -543,64 +569,67 @@ _freq_dirs_analyze_tools_multi() {
                 elif [[ $percent -gt 15 ]]; then
                     color="\\033[92m"  # Green for moderate
                 fi
-                
+
                 printf "   ${color}%-12s %3d uses (%2d%%)\\033[0m  \\033[90m← %s\\033[0m\\n" "${tool}:" "$count" "$percent" "$category_label"
             done
             echo ""
         fi
-        
+
         rm -f "$temp_file"
     done <<< "$merged_data"
-    
+
     echo ""
     printf "  \\033[90mShowing top 5 tools per directory\\033[0m\\n"
     printf "  \\033[90m💡 Use 'wfreq --config' to change number of directories shown\\033[0m\\n"
 }
-'''
+"""
 
-def generate_tool_tracking():
+
+def generate_tool_tracking() -> str:
     """Generate tool usage tracking functions"""
     # Generate case statements for tool categorization
     category_cases = []
     for category, data in TRACKED_TOOLS.items():
-        tools_pattern = '|'.join(data['tools'])
-        category_cases.append(f'        {tools_pattern})\n            tool_type="{category}"\n            ;;')
-    category_case_block = '\n'.join(category_cases)
-    
-    return f'''
+        tools_pattern = "|".join(data["tools"])
+        category_cases.append(
+            f'        {tools_pattern})\n            tool_type="{category}"\n            ;;'
+        )
+    category_case_block = "\n".join(category_cases)
+
+    return f"""
 # Track tool usage
 _freq_dirs_track_tool() {{
     if [[ "$FREQ_TRACK_TOOLS" != "true" ]]; then
         return
     fi
-    
+
     local full_cmd="$1"
     # Extract just the tool name (first word)
     local tool=$(echo "$full_cmd" | awk '{{print $1}}')
-    
+
     # Skip if empty
     [[ -z "$tool" ]] && return
-    
+
     # Skip shell builtins and navigation commands
     case "$tool" in
         cd|pushd|popd|dirs|pwd|source|.|alias|unalias|export|unset|builtin|command|type|which|eval|exec|exit|return)
             return
             ;;
     esac
-    
+
     # Skip PathWise's own commands to avoid noise in tool tracking
     case "$tool" in
         wfreq|wj1|wj2|wj3|wj4|wj5|wj6|wj7|wj8|wj9|wj10|_freq_dirs_git_wrapper)
             return
             ;;
     esac
-    
+
     # Determine if it's a custom script (starts with ./ or ../)
     local is_custom_script=false
     local tool_to_track="$tool"
     local tool_type="other"
     local alias_info=""
-    
+
     if [[ "$tool" == ./* ]] || [[ "$tool" == ../* ]]; then
         is_custom_script=true
         # Keep the ./ or ../ prefix for custom scripts
@@ -614,7 +643,7 @@ _freq_dirs_track_tool() {{
             local real_cmd=$(echo "$type_output" | sed 's/.*is an alias for //' | sed "s/'//g")
             # Get the first word of the real command (the actual tool)
             local real_tool=$(echo "$real_cmd" | awk '{{print $1}}')
-            
+
             # Special case: if git is aliased to our wrapper, treat it as git
             if [[ "$tool" == "git" ]] && [[ "$real_tool" == "_freq_dirs_git_wrapper" ]]; then
                 tool_to_track="git"
@@ -637,11 +666,11 @@ _freq_dirs_track_tool() {{
             fi
         fi
     fi
-    
+
     # Check if it's an actual executable command or custom script
     if [[ "$is_custom_script" == "true" ]] || command -v "$tool_to_track" >/dev/null 2>&1; then
         local current_dir="${{PWD/#$HOME/~}}"
-        
+
         # Categorize the tool if not already done
         if [[ "$tool_type" == "other" ]]; then
             # Check against known tool categories
@@ -656,7 +685,7 @@ _freq_dirs_track_tool() {{
                     ;;
             esac
         fi
-        
+
         # Record tool usage with optional alias info
         echo "${{current_dir}}|${{tool_to_track}}|${{tool_type}}${{alias_info}}|$(date +%s)" >> "$FREQ_DIRS_TOOLS"
     fi
@@ -666,29 +695,29 @@ _freq_dirs_track_tool() {{
 _freq_dirs_analyze_tools() {{
     local target_dir="${{1:-${{PWD/#$HOME/~}}}}"
     local temp_file=$(mktemp)
-    
+
     if [[ ! -s "$FREQ_DIRS_TOOLS" ]]; then
         return
     fi
-    
+
     # Get tools used in this directory
     grep "^${{target_dir}}|" "$FREQ_DIRS_TOOLS" 2>/dev/null > "$temp_file" || true
-    
+
     if [[ ! -s "$temp_file" ]]; then
         rm -f "$temp_file"
         return
     fi
-    
+
     # Count tool usage
     local total_uses=$(wc -l < "$temp_file")
-    
+
     printf "\\033[94m🛠️  Tool Usage in ${{target_dir}}:\\033[0m\\n"
     printf "  \\033[93mTotal tool invocations: ${{total_uses}}\\033[0m\\n"
     echo ""
-    
+
     # Top 10 tools (group git and its aliases together)
     printf "  \\033[36mTop 10 Tools:\\033[0m\\n"
-    
+
     # Extract and count tools, merging git aliases
     local tool_counts=$(mktemp)
     while IFS='|' read -r dir tool info timestamp; do
@@ -706,11 +735,11 @@ _freq_dirs_analyze_tools() {{
             echo "$tool" >> "$tool_counts"
         fi
     done < "$temp_file"
-    
+
     sort "$tool_counts" | uniq -c | sort -rn | head -10 | while read count tool; do
         local percent=$((count * 100 / total_uses))
         local tool_info=$(grep "|${{tool}}|" "$temp_file" | head -1 | awk -F'|' '{{print $3}}' | cut -d'|' -f1)
-        
+
         # Check for git aliases used with this tool
         local git_aliases=""
         if [[ "$tool" == "git" ]]; then
@@ -719,7 +748,7 @@ _freq_dirs_analyze_tools() {{
                 git_aliases=" (via $git_aliases)"
             fi
         fi
-        
+
         # Color based on type
         local color="\\033[37m"  # Default white
         if [[ "$tool_info" == "custom" ]]; then
@@ -727,21 +756,21 @@ _freq_dirs_analyze_tools() {{
         elif [[ "$tool_info" == "known" ]] || [[ "$tool_info" == "version_control" ]]; then
             color="\\033[96m"  # Cyan for known
         fi
-        
+
         printf "    ${{color}}%-15s\\033[0m %3d uses \\033[90m(%d%%)${{git_aliases}}\\033[0m\\n" "${{tool}}:" "$count" "$percent"
     done
-    
+
     rm -f "$tool_counts"
-    
+
     # Add hint about --tools flag
     echo ""
     printf "  \\033[90m💡 Use 'wfreq --tools' to see tool usage across top directories\\033[0m\\n"
-    
+
     # Show custom scripts and AI tools if any
     echo ""
-    local custom_scripts=$(awk -F'|' '$3=="custom" {{print $2}}' "$temp_file" | grep '^\\.\/' | sort -u)
+    local custom_scripts=$(awk -F'|' '$3=="custom" {{print $2}}' "$temp_file" | grep '^\\.\\/' | sort -u)
     local ai_tools=$(grep -E "\\|(claude|gemini|opencode|chatgpt|copilot|codeium|aider|cursor|cody|tabnine|gpt|ollama|sgpt|llm)\\|" "$temp_file" | awk -F'|' '{{print $2}}' | sort -u)
-    
+
     if [[ -n "$custom_scripts" ]]; then
         printf "  \\033[35mCustom Scripts Used Here:\\033[0m\\n"
         echo "$custom_scripts" | head -5 | while read tool; do
@@ -749,32 +778,33 @@ _freq_dirs_analyze_tools() {{
         done
         echo ""
     fi
-    
+
     if [[ -n "$ai_tools" ]]; then
         printf "  \\033[94mAI Assistants Used Here:\\033[0m\\n"
         echo "$ai_tools" | head -5 | while read tool; do
             [[ -n "$tool" ]] && printf "    🤖 %s\\n" "$tool"
         done
     fi
-    
+
     rm -f "$temp_file"
 }}
-'''
+"""
 
-def generate_rotation_functions():
+
+def generate_rotation_functions() -> str:
     """Generate daily data rotation functions"""
-    return '''
+    return """
 # Check if we need to rotate data (daily reset)
 _freq_dirs_check_rotation() {
     _freq_dirs_load_config
-    
+
     if [[ "$FREQ_AUTO_RESET" != "true" ]]; then
         return
     fi
-    
+
     local today=$(date +%Y-%m-%d)
     local last_reset=$(cat "$FREQ_DIRS_LAST_RESET" 2>/dev/null || echo "1970-01-01")
-    
+
     if [[ "$today" != "$last_reset" ]]; then
         # It's a new day! Rotate the data
         if [[ -f "$FREQ_DIRS_TODAY" ]]; then
@@ -782,33 +812,34 @@ _freq_dirs_check_rotation() {
         fi
         touch "$FREQ_DIRS_TODAY"
         echo "$today" > "$FREQ_DIRS_LAST_RESET"
-        
+
         # Archive session data with date
         if [[ -s "$FREQ_DIRS_SESSIONS" ]]; then
             cat "$FREQ_DIRS_SESSIONS" >> "${FREQ_DIRS_SESSIONS}.archive"
             > "$FREQ_DIRS_SESSIONS"
         fi
-        
+
         # Reset git counts for today
         > "$FREQ_DIRS_GIT_TODAY"
     fi
 }
-'''
+"""
 
-def generate_time_tracking():
+
+def generate_time_tracking() -> str:
     """Generate time recording functions"""
-    return '''
+    return """
 # Record time spent in previous directory
 _freq_dirs_record_time() {
     if [[ -n "$FREQ_CURRENT_DIR" ]] && [[ -n "$FREQ_ENTER_TIME" ]]; then
         local exit_time=$(date +%s)
         local duration=$((exit_time - FREQ_ENTER_TIME))
-        
+
         # Only record if spent minimum time
         if [[ $duration -ge $FREQ_MIN_TIME ]]; then
             # Record session
             echo "${FREQ_CURRENT_DIR}|${FREQ_ENTER_TIME}|${exit_time}|${duration}" >> "$FREQ_DIRS_SESSIONS"
-            
+
             # Update today's time tracking
             if grep -q "^${FREQ_CURRENT_DIR}|" "$FREQ_DIRS_TODAY" 2>/dev/null; then
                 local line=$(grep "^${FREQ_CURRENT_DIR}|" "$FREQ_DIRS_TODAY")
@@ -816,7 +847,7 @@ _freq_dirs_record_time() {
                 local total_time=$(echo "$line" | cut -d'|' -f3)
                 [[ -z "$total_time" ]] && total_time=0
                 local new_time=$((total_time + duration))
-                
+
                 grep -v "^${FREQ_CURRENT_DIR}|" "$FREQ_DIRS_TODAY" > "${FREQ_DIRS_TODAY}.tmp" 2>/dev/null
                 echo "${FREQ_CURRENT_DIR}|${count}|${new_time}" >> "${FREQ_DIRS_TODAY}.tmp"
                 mv "${FREQ_DIRS_TODAY}.tmp" "$FREQ_DIRS_TODAY"
@@ -824,39 +855,40 @@ _freq_dirs_record_time() {
         fi
     fi
 }
-'''
+"""
 
-def generate_directory_update():
+
+def generate_directory_update() -> str:
     """Generate directory visit tracking functions"""
-    return '''
+    return """
 # Update directory visit count and time tracking
 _freq_dirs_update() {
     local current_dir="${PWD/#$HOME/~}"
-    
+
     # Check for rotation first
     _freq_dirs_check_rotation
-    
+
     # Record time in previous directory
     if [[ "$FREQ_TRACK_TIME" == "true" ]]; then
         _freq_dirs_record_time
     fi
-    
+
     # Don't track home directory itself or root
     if [[ "$current_dir" == "~" ]] || [[ "$current_dir" == "/" ]]; then
         FREQ_CURRENT_DIR=""
         FREQ_ENTER_TIME=""
         return
     fi
-    
+
     # Set new directory and time
     FREQ_CURRENT_DIR="$current_dir"
     FREQ_ENTER_TIME=$(date +%s)
-    
+
     # Initialize session if needed
     if [[ -z "$FREQ_SESSION_START" ]]; then
         FREQ_SESSION_START=$FREQ_ENTER_TIME
     fi
-    
+
     # Update the count for current directory in today's file
     if grep -q "^${current_dir}|" "$FREQ_DIRS_TODAY" 2>/dev/null; then
         # Directory exists, increment count
@@ -865,7 +897,7 @@ _freq_dirs_update() {
         local total_time=$(echo "$line" | cut -d'|' -f3)
         [[ -z "$total_time" ]] && total_time=0
         local new_count=$((old_count + 1))
-        
+
         grep -v "^${current_dir}|" "$FREQ_DIRS_TODAY" > "${FREQ_DIRS_TODAY}.tmp" 2>/dev/null
         echo "${current_dir}|${new_count}|${total_time}" >> "${FREQ_DIRS_TODAY}.tmp"
         mv "${FREQ_DIRS_TODAY}.tmp" "$FREQ_DIRS_TODAY"
@@ -874,20 +906,21 @@ _freq_dirs_update() {
         echo "${current_dir}|1|0" >> "$FREQ_DIRS_TODAY"
     fi
 }
-'''
+"""
 
-def generate_insights():
+
+def generate_insights() -> str:
     """Generate insights generation function with colorization"""
-    return '''
+    return """
 # Shared git commit analysis function
 _freq_dirs_analyze_git_commits() {
     local target_dir="$1"
     local format="${2:-toml}"  # "display" or "toml"
-    
+
     if [[ "$FREQ_TRACK_GIT" != "true" ]]; then
         return
     fi
-    
+
     # Get git commits for target directory (or all if not specified)
     local git_data=""
     if [[ -n "$target_dir" ]]; then
@@ -895,20 +928,20 @@ _freq_dirs_analyze_git_commits() {
     else
         git_data=$(cat "$FREQ_DIRS_GIT" 2>/dev/null)
     fi
-    
+
     [[ -z "$git_data" ]] && return
-    
+
     # Count commits by category using priority-based categorization
     local revert_count=0 fix_count=0 feat_count=0 perf_count=0 refactor_count=0
     local test_count=0 build_count=0 ci_count=0 docs_count=0 style_count=0 chore_count=0 other_count=0
-    
+
     while IFS='|' read -r dir hash timestamp message; do
         [[ -z "$message" ]] && continue
         local msg_lower=$(echo "$message" | tr '[:upper:]' '[:lower:]')
-        
+
         # Use the same categorization function as the main insights
         local category=$(_freq_dirs_categorize_commit "$msg_lower")
-        
+
         case "$category" in
             revert) ((revert_count++)) ;;
             fix) ((fix_count++)) ;;
@@ -924,13 +957,13 @@ _freq_dirs_analyze_git_commits() {
             *) ((other_count++)) ;;
         esac
     done <<< "$git_data"
-    
+
     local total_commits=$((revert_count + fix_count + feat_count + perf_count + refactor_count + test_count + build_count + ci_count + docs_count + style_count + chore_count + other_count))
-    
+
     if [[ $total_commits -eq 0 ]]; then
         return
     fi
-    
+
     # Output in requested format
     if [[ "$format" == "toml" ]]; then
         # TOML key=value format for export
@@ -947,7 +980,7 @@ _freq_dirs_analyze_git_commits() {
         [[ $chore_count -gt 0 ]] && echo "chore = $chore_count"
         [[ $other_count -gt 0 ]] && echo "other = $other_count"
     fi
-    
+
     # Return total count for reference
     return $total_commits
 }
@@ -955,7 +988,7 @@ _freq_dirs_analyze_git_commits() {
 # Generate insights from collected data
 _freq_dirs_generate_insights() {
     local temp_file=$(mktemp)
-    
+
     # Analyze today's data
     if [[ -s "$FREQ_DIRS_TODAY" ]]; then
         # Calculate total time and visits
@@ -966,14 +999,14 @@ _freq_dirs_generate_insights() {
             total_time=$((total_time + time))
             total_visits=$((total_visits + count))
         done < "$FREQ_DIRS_TODAY"
-        
+
         printf "\\033[94m📊 Today's Activity Summary\\033[0m\\n" > "$temp_file"
         printf "\\033[90m────────────────────────────\\033[0m\\n" >> "$temp_file"
         printf "Total directories visited: \\033[93m$(cat "$FREQ_DIRS_TODAY" | wc -l)\\033[0m\\n" >> "$temp_file"
         printf "Total navigation events: \\033[93m$total_visits\\033[0m\\n" >> "$temp_file"
         printf "Total tracked time: \\033[92m$(_freq_dirs_format_time $total_time)\\033[0m\\n" >> "$temp_file"
         echo "" >> "$temp_file"
-        
+
         # Top directories by time
         if [[ $total_time -gt 0 ]]; then
             printf "\\033[36m⏱️  Time Distribution:\\033[0m\\n" >> "$temp_file"
@@ -995,23 +1028,23 @@ _freq_dirs_generate_insights() {
             done
             echo "" >> "$temp_file"
         fi
-        
+
         # Session analysis
         if [[ -s "$FREQ_DIRS_SESSIONS" ]]; then
             printf "\\033[35m📈 Session Patterns:\\033[0m\\n" >> "$temp_file"
-            
+
             # Find peak hours
             local hour_counts=$(mktemp)
             cat "$FREQ_DIRS_SESSIONS" | while IFS='|' read -r dir start_time end_time duration; do
                 date -d "@$start_time" +%H >> "$hour_counts"
             done
-            
+
             if [[ -s "$hour_counts" ]]; then
                 local peak_hour=$(sort "$hour_counts" | uniq -c | sort -rn | head -1 | awk '{print $2}')
                 [[ -n "$peak_hour" ]] && printf "  Peak activity hour: \\033[93m${peak_hour}:00\\033[0m\\n" >> "$temp_file"
             fi
             rm -f "$hour_counts"
-            
+
             # Average session duration
             local session_count=$(wc -l < "$FREQ_DIRS_SESSIONS")
             if [[ $session_count -gt 0 ]]; then
@@ -1019,7 +1052,7 @@ _freq_dirs_generate_insights() {
                 local avg_time=$((total_session_time / session_count))
                 printf "  Average time per directory: \\033[92m$(_freq_dirs_format_time $avg_time)\\033[0m\\n" >> "$temp_file"
             fi
-            
+
             # Directory sequences (patterns)
             echo "" >> "$temp_file"
             printf "\\033[96m🔄 Common Navigation Patterns:\\033[0m\\n" >> "$temp_file"
@@ -1032,10 +1065,10 @@ _freq_dirs_generate_insights() {
                 fi
                 prev_dir="$dir"
             done
-            
+
             if [[ -s "$patterns" ]]; then
                 sort "$patterns" | uniq -c | sort -rn | head -3 | while read count pattern; do
-                    # Split pattern into parts and colorize arrow (using awk for multi-byte delimiter)  
+                    # Split pattern into parts and colorize arrow (using awk for multi-byte delimiter)
                     local from_dir=$(echo "$pattern" | awk -F' → ' '{print $1}')
                     local to_dir=$(echo "$pattern" | awk -F' → ' '{print $2}')
                     printf "  %s \\033[93m→\\033[0m %s \\033[90m(%sx)\\033[0m\\n" "$from_dir" "$to_dir" "$count" >> "$temp_file"
@@ -1044,13 +1077,13 @@ _freq_dirs_generate_insights() {
             rm -f "$patterns"
             echo "" >> "$temp_file"
         fi
-        
+
         # Add git analytics
         local git_analysis=$(_freq_dirs_analyze_commits)
         if [[ -n "$git_analysis" ]]; then
             echo "$git_analysis" >> "$temp_file"
         fi
-        
+
         # Add tool usage analytics
         if [[ "$FREQ_TRACK_TOOLS" == "true" ]]; then
             echo "" >> "$temp_file"
@@ -1061,38 +1094,39 @@ _freq_dirs_generate_insights() {
             fi
         fi
     fi
-    
+
     cat "$temp_file"
     rm -f "$temp_file"
 }
-'''
+"""
 
-def generate_data_merge():
+
+def generate_data_merge() -> str:
     """Generate data merging function"""
-    return '''
+    return """
 # Merge today's and yesterday's data for display with cumulative totals
 _freq_dirs_get_merged_data() {
     local show_count="${1:-$FREQ_SHOW_COUNT}"
     local temp_file=$(mktemp)
     local sorted_file=$(mktemp)
-    
+
     # Use associative arrays to accumulate data
     typeset -A dir_visits
     typeset -A dir_time
     typeset -A dir_commits
     typeset -A dir_periods
-    
+
     # Process today's data
     if [[ -s "$FREQ_DIRS_TODAY" ]]; then
         while IFS='|' read -r dir count time; do
             [[ -z "$time" ]] && time=0
             local git_count=$(_freq_dirs_get_git_count "$dir")
-            
+
             # Accumulate values
             dir_visits[$dir]=$((${dir_visits[$dir]:-0} + count))
             dir_time[$dir]=$((${dir_time[$dir]:-0} + time))
             dir_commits[$dir]=$((${dir_commits[$dir]:-0} + git_count))
-            
+
             # Track period
             if [[ -z "${dir_periods[$dir]}" ]]; then
                 dir_periods[$dir]="today"
@@ -1101,17 +1135,17 @@ _freq_dirs_get_merged_data() {
             fi
         done < "$FREQ_DIRS_TODAY"
     fi
-    
+
     # Process yesterday's data
     if [[ -s "$FREQ_DIRS_YESTERDAY" ]]; then
         while IFS='|' read -r dir count time; do
             [[ -z "$time" ]] && time=0
-            
+
             # Accumulate values
             dir_visits[$dir]=$((${dir_visits[$dir]:-0} + count))
             dir_time[$dir]=$((${dir_time[$dir]:-0} + time))
             # Note: We don't add git commits from yesterday as they're already in FREQ_DIRS_GIT
-            
+
             # Track period
             if [[ -z "${dir_periods[$dir]}" ]]; then
                 dir_periods[$dir]="yesterday"
@@ -1120,12 +1154,12 @@ _freq_dirs_get_merged_data() {
             fi
         done < "$FREQ_DIRS_YESTERDAY"
     fi
-    
+
     # Output all directories with their cumulative totals
     for dir in ${(k)dir_visits}; do
         echo "${dir}|${dir_visits[$dir]}|${dir_time[$dir]}|${dir_commits[$dir]}|${dir_periods[$dir]}" >> "$temp_file"
     done
-    
+
     # Sort based on configuration using cumulative totals
     case "$FREQ_SORT_BY" in
         visits)
@@ -1141,48 +1175,45 @@ _freq_dirs_get_merged_data() {
             sort -t'|' -k3,3rn "$temp_file" > "$sorted_file"
             ;;
     esac
-    
+
     # Output sorted data
     cat "$sorted_file"
-    
+
     rm -f "$temp_file" "$sorted_file"
 }
-'''
+"""
 
-def generate_tips_array():
+
+def generate_tips_array() -> str:
     """Generate shell array of tips for random selection"""
     # Create tips with category prefixes
     categorized_tips = []
     for category, tips_list in TIPS.items():
         for tip in tips_list:
             # Escape quotes and special characters for shell
-            escaped_tip = tip.replace('"', '\\"').replace('$', '\\$').replace('`', '\\`')
+            escaped_tip = (
+                tip.replace('"', '\\"').replace("$", "\\$").replace("`", "\\`")
+            )
             # Add category prefix
             categorized_tips.append(f"{category}:{escaped_tip}")
-    
+
     # Include ALL tips for true randomization at runtime
-    tips_array = 'PATHWISE_TIPS=(\n'
+    tips_array = "PATHWISE_TIPS=(\n"
     for tip in categorized_tips:
         tips_array += f'    "{tip}"\n'
-    tips_array += ')\n'
-    
+    tips_array += ")\n"
+
     return tips_array
 
-def generate_freq_command():
+
+def generate_freq_command() -> str:
     """Generate main freq command with arguments"""
     # Use color codes from our palette
-    jump_color = ANSIColor.CYAN
-    yesterday_color = ANSIColor.BRIGHT_BLACK
-    git_color = ANSIColor.BRIGHT_YELLOW
-    time_low = ANSIColor.YELLOW
-    time_medium = ANSIColor.BRIGHT_YELLOW
-    time_high = ANSIColor.BRIGHT_RED
-    time_very_high = ANSIColor.RED
-    
+
     # Generate tips array
     tips_array = generate_tips_array()
-    
-    return f'''
+
+    return f"""
 {tips_array}
 
 # Function to get a random tip with category
@@ -1191,11 +1222,11 @@ _freq_dirs_get_random_tip() {{
     # Zsh arrays are 1-indexed
     local random_index=$((RANDOM % num_tips + 1))
     local tip_with_category="${{PATHWISE_TIPS[$random_index]}}"
-    
+
     # Split category and tip
     local category="${{tip_with_category%%:*}}"
     local tip="${{tip_with_category#*:}}"
-    
+
     # Capitalize and format category name (handle underscores)
     case "$category" in
         pathwise) category="PathWise" ;;
@@ -1227,13 +1258,13 @@ _freq_dirs_get_random_tip() {{
         packages) category="Packages" ;;
         *) category="${{(C)category}}" ;;  # Capitalize first letter
     esac
-    
+
     echo "${{category}} Tip: ${{tip}}"
 }}
 # Main wfreq function with argument parsing
 wfreq() {{
     _freq_dirs_load_config
-    
+
     # Parse arguments
     case "$1" in
         --reset|-r)
@@ -1242,7 +1273,7 @@ wfreq() {{
                 echo "❌ Reset requires interactive terminal. Run 'wfreq --reset' manually."
                 return 1
             fi
-            
+
             echo -n "Reset all frequency data? (y/N): "
             read -t 10 response || response="n"
             if [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]; then
@@ -1254,7 +1285,7 @@ wfreq() {{
                 FREQ_CURRENT_DIR=""
                 FREQ_ENTER_TIME=""
                 FREQ_SESSION_START=""
-                
+
                 # Ask about insights and tracking data
                 echo -n "Also clear insights and tool tracking? (y/N): "
                 read -t 10 insights_response || insights_response="n"
@@ -1296,47 +1327,47 @@ wfreq() {{
                 echo "❌ Configuration requires interactive terminal. Run 'wfreq --config' manually."
                 return 1
             fi
-            
+
             echo ""
             printf "\\033[36m⚙️  PathWise Configuration\\033[0m\\n"
             printf "\\033[90m────────────────────────────────────\\033[0m\\n"
             echo ""
             printf "\\033[93mCurrent settings:\\033[0m\\n"
-            
+
             # Color code the values based on their state
             if [[ "${{FREQ_AUTO_RESET}}" == "true" ]]; then
                 printf "  Auto-reset: \\033[92menabled\\033[0m\\n"
             else
                 printf "  Auto-reset: \\033[91mdisabled\\033[0m\\n"
             fi
-            
+
             printf "  Reset hour: \\033[93m${{FREQ_RESET_HOUR}}:00\\033[0m\\n"
             printf "  Show count: \\033[94m${{FREQ_SHOW_COUNT}}\\033[0m directories\\n"
-            
+
             if [[ "${{FREQ_TRACK_TIME}}" == "true" ]]; then
                 printf "  Track time: \\033[92menabled\\033[0m\\n"
             else
                 printf "  Track time: \\033[91mdisabled\\033[0m\\n"
             fi
-            
+
             printf "  Min time: \\033[94m${{FREQ_MIN_TIME}}\\033[0m seconds\\n"
-            
+
             if [[ "${{FREQ_TRACK_GIT}}" == "true" ]]; then
                 printf "  Track git: \\033[92menabled\\033[0m\\n"
             else
                 printf "  Track git: \\033[91mdisabled\\033[0m\\n"
             fi
-            
+
             if [[ "${{FREQ_TRACK_TOOLS}}" == "true" ]]; then
                 printf "  Track tools: \\033[92menabled\\033[0m\\n"
             else
                 printf "  Track tools: \\033[91mdisabled\\033[0m\\n"
             fi
-            
+
             printf "  Sort by: \\033[95m${{FREQ_SORT_BY}}\\033[0m\\n"
             echo ""
             printf "\\033[36mConfigure:\\033[0m\\n"
-            
+
             # Auto-reset configuration
             printf "\\033[96m  Enable auto-reset?\\033[0m (y/n) \\033[90m[${{FREQ_AUTO_RESET}}]\\033[0m\\n"
             printf "  \\033[90m→ Options: y=enable daily reset, n=keep data forever, Enter=no change\\033[0m\\n"
@@ -1350,7 +1381,7 @@ wfreq() {{
                 fi
             fi
             echo ""
-            
+
             if [[ "$FREQ_AUTO_RESET" == "true" ]]; then
                 printf "\\033[96m  Reset hour\\033[0m (0-23) \\033[90m[${{FREQ_RESET_HOUR}}]\\033[0m\\n"
                 printf "  \\033[90m→ Options: 0=midnight, 12=noon, 23=11pm, Enter=no change\\033[0m\\n"
@@ -1361,7 +1392,7 @@ wfreq() {{
                 fi
                 echo ""
             fi
-            
+
             printf "\\033[96m  Number of directories to show\\033[0m (1-10) \\033[90m[${{FREQ_SHOW_COUNT}}]\\033[0m\\n"
             printf "  \\033[90m→ Options: 1-10 directories, Enter=no change\\033[0m\\n"
             printf "  \\033[96m>\\033[0m "
@@ -1370,7 +1401,7 @@ wfreq() {{
                 FREQ_SHOW_COUNT="$response"
             fi
             echo ""
-            
+
             printf "\\033[96m  Enable time tracking?\\033[0m (y/n) \\033[90m[${{FREQ_TRACK_TIME}}]\\033[0m\\n"
             printf "  \\033[90m→ Options: y=track time spent, n=only track visits, Enter=no change\\033[0m\\n"
             printf "  \\033[96m>\\033[0m "
@@ -1383,7 +1414,7 @@ wfreq() {{
                 fi
             fi
             echo ""
-            
+
             if [[ "$FREQ_TRACK_TIME" == "true" ]]; then
                 printf "\\033[96m  Minimum time to track\\033[0m (seconds) \\033[90m[${{FREQ_MIN_TIME}}]\\033[0m\\n"
                 printf "  \\033[90m→ Options: 0=track all, 5=default, 60=only 1min+, Enter=no change\\033[0m\\n"
@@ -1394,7 +1425,7 @@ wfreq() {{
                 fi
                 echo ""
             fi
-            
+
             printf "\\033[96m  Enable git tracking?\\033[0m (y/n) \\033[90m[${{FREQ_TRACK_GIT}}]\\033[0m\\n"
             printf "  \\033[90m→ Options: y=track git commits, n=disable git features, Enter=no change\\033[0m\\n"
             printf "  \\033[96m>\\033[0m "
@@ -1407,7 +1438,7 @@ wfreq() {{
                 fi
             fi
             echo ""
-            
+
             printf "\\033[96m  Enable tool tracking?\\033[0m (y/n) \\033[90m[${{FREQ_TRACK_TOOLS}}]\\033[0m\\n"
             printf "  \\033[90m→ Options: y=track tool usage, n=disable tool tracking, Enter=no change\\033[0m\\n"
             printf "  \\033[96m>\\033[0m "
@@ -1420,7 +1451,7 @@ wfreq() {{
                 fi
             fi
             echo ""
-            
+
             printf "\\033[96m  Sort by\\033[0m (visits/time/commits) \\033[90m[${{FREQ_SORT_BY}}]\\033[0m\\n"
             printf "  \\033[90m→ Options: visits=most visited, time=longest time, commits=most commits, Enter=no change\\033[0m\\n"
             printf "  \\033[96m>\\033[0m "
@@ -1429,7 +1460,7 @@ wfreq() {{
                 FREQ_SORT_BY="$response"
             fi
             echo ""
-            
+
             _freq_dirs_save_config
             echo ""
             printf "\\033[92m✅ Configuration saved!\\033[0m\\n"
@@ -1461,84 +1492,84 @@ wfreq() {{
             return
             ;;
     esac
-    
+
     # Check for rotation
     _freq_dirs_check_rotation
-    
+
     # Get merged data
     local merged_data=$(_freq_dirs_get_merged_data)
-    
+
     if [[ -z "$merged_data" ]]; then
         echo "No frequently visited directories yet. Start navigating!"
         return
     fi
-    
+
     echo ""
     echo "PathWise Directory Frequency:"
     echo ""
-    
+
     # Display and create aliases - properly group dual entries
     local i=1
     local dir_count=0  # Track number of unique directories shown
-    
+
     # Load config to get show_count
     _freq_dirs_load_config
-    
+
     # Pre-process: Group all entries by directory
     local grouped_data=$(mktemp)
     local processed_dirs=""
-    
+
     # Process each unique directory in order
     while IFS='|' read -r dir count time git_count period; do
         # Skip if we've already processed this directory
         if echo "$processed_dirs" | grep -qF "|${{dir}}|"; then
             continue
         fi
-        
+
         # Check if we've reached the display limit
         if [[ $dir_count -ge $FREQ_SHOW_COUNT ]]; then
             break  # Stop processing after showing configured number of directories
         fi
-        
+
         # Mark as processed
         processed_dirs="${{processed_dirs}}|${{dir}}|"
         dir_count=$((dir_count + 1))
-        
+
         # Find all entries for this directory (both today and yesterday)
         local today_entry=$(echo "$merged_data" | grep "^${{dir}}|.*|today$" | head -1)
         local yesterday_entry=$(echo "$merged_data" | grep "^${{dir}}|.*|yesterday$" | head -1)
-        
+
         # Display the directory header
         printf "  \033[36m[wj%d]\033[0m %s\n" "$i" "$dir"
-        
+
         # Create the jump alias
         eval "alias wj${{i}}='cd \\"${{dir/#\\~/$HOME}}\\"'"
         i=$((i + 1))
-        
+
         # Display today's entry if it exists
         if [[ -n "$today_entry" ]]; then
             local t_count=$(echo "$today_entry" | cut -d'|' -f2)
             local t_time=$(echo "$today_entry" | cut -d'|' -f3)
             local t_git=$(echo "$today_entry" | cut -d'|' -f4)
-            
+
             [[ -z "$t_time" ]] && t_time=0
             [[ -z "$t_git" ]] && t_git=0
-            
+
             local time_display=""
             local git_display=""
-            
+
             if [[ $t_time -gt 0 ]]; then
                 time_display=" · $(_freq_dirs_format_time $t_time)"
             fi
-            
+
             if [[ $t_git -gt 0 ]]; then
                 git_display="[$t_git commits]"
             fi
-            
+
             # Color based on activity
             local visits_color=""
             local time_color=""
-            
+
             if [[ $t_count -gt 10 ]]; then
                 visits_color="\033[91m"  # Bright red for very frequent
             elif [[ $t_count -gt 5 ]]; then
@@ -1548,7 +1579,7 @@ wfreq() {{
             else
                 visits_color="\033[36m"  # Cyan for low
             fi
-            
+
             if [[ $t_time -gt 3600 ]]; then
                 time_color="\033[31m"  # Red for > 1 hour
             elif [[ $t_time -gt 1800 ]]; then
@@ -1558,7 +1589,7 @@ wfreq() {{
             else
                 time_color="\033[92m"  # Green for < 10 min
             fi
-            
+
             if [[ -n "$git_display" ]]; then
                 printf "      ├─ %s%d visits\033[0m · %s%s\033[0m today \033[38;5;220m%s\033[0m\n" \
                     "$visits_color" "$t_count" "$time_color" "$time_display" "$git_display"
@@ -1567,27 +1598,27 @@ wfreq() {{
                     "$visits_color" "$t_count" "$time_color" "$time_display"
             fi
         fi
-        
+
         # Display yesterday's entry if it exists
         if [[ -n "$yesterday_entry" ]]; then
             local y_count=$(echo "$yesterday_entry" | cut -d'|' -f2)
             local y_time=$(echo "$yesterday_entry" | cut -d'|' -f3)
             local y_git=$(echo "$yesterday_entry" | cut -d'|' -f4)
-            
+
             [[ -z "$y_time" ]] && y_time=0
             [[ -z "$y_git" ]] && y_git=0
-            
+
             local time_display=""
             local git_display=""
-            
+
             if [[ $y_time -gt 0 ]]; then
                 time_display=" · $(_freq_dirs_format_time $y_time)"
             fi
-            
+
             if [[ $y_git -gt 0 ]]; then
                 git_display="[$y_git commits]"
             fi
-            
+
             if [[ -n "$git_display" ]]; then
                 printf "      ├─ \033[90m%d visits%s yesterday\033[0m \033[93m%s\033[0m\n" \
                     "$y_count" "$time_display" "$git_display"
@@ -1597,37 +1628,38 @@ wfreq() {{
             fi
         fi
     done <<< "$merged_data"
-    
+
     rm -f "$grouped_data"
-    
+
     echo ""
     echo "💡 Commands: wfreq | wfreq --insights | wfreq --config"
     echo ""
-    
+
     # Display a random tip
     local tip=$(_freq_dirs_get_random_tip)
     echo "💭 $tip"
     echo ""
 }}
-'''
+"""
 
-def generate_setup_functions():
+
+def generate_setup_functions() -> str:
     """Generate alias setup and cleanup functions"""
-    return '''
+    return """
 # Setup jump aliases on shell startup
 _freq_dirs_setup_aliases() {
     # Only setup aliases in interactive shells to prevent blocking
     [[ ! -o interactive ]] && return
-    
+
     _freq_dirs_load_config
     _freq_dirs_check_rotation
-    
+
     local merged_data=$(_freq_dirs_get_merged_data)
-    
+
     if [[ -z "$merged_data" ]]; then
         return
     fi
-    
+
     # Create aliases for top directories
     # Process data without subshell to maintain variable state
     local i=1
@@ -1649,27 +1681,28 @@ _freq_dirs_exit() {
 _freq_dirs_git_wrapper() {
     local git_cmd="$1"
     shift
-    
+
     # Run the actual git command
     command git "$git_cmd" "$@"
     local exit_code=$?
-    
+
     # Track commit if successful
     if [[ "$git_cmd" == "commit" ]] && [[ $exit_code -eq 0 ]]; then
         _freq_dirs_track_git_commit
     fi
-    
+
     return $exit_code
 }
-'''
+"""
 
-def generate_export_function():
+
+def generate_export_function() -> str:
     """Generate TOML export functionality"""
-    return '''
+    return """
 # Get tool category for export
 _freq_dirs_get_tool_category() {
     local tool="$1"
-    
+
     # Check known tools categories from our tracking
     case "$tool" in
         nano|vim|vi|nvim|emacs|code|subl|atom|gedit|kate|micro)
@@ -1716,7 +1749,7 @@ _freq_dirs_get_tool_category() {
 _freq_dirs_export_toml() {
     local output_path="pathwise_export.toml"
     local filter_pattern=""
-    
+
     # Parse arguments - check for filter first, then output path
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -1733,23 +1766,23 @@ _freq_dirs_export_toml() {
                 ;;
         esac
     done
-    
+
     # Handle special filter cases
     if [[ "$filter_pattern" == "." ]]; then
         # Convert current directory to use ~ notation for matching
         local current_dir="$(pwd)"
         filter_pattern="${current_dir/#$HOME/~}"
     fi
-    
+
     # If output path is a directory, add default filename
     if [[ -d "$output_path" ]]; then
         output_path="${output_path%/}/pathwise_export.toml"
     fi
-    
+
     # Get filtered data
     local merged_data=$(_freq_dirs_get_merged_data 100)  # Get more for filtering
     local filtered_data=""
-    
+
     if [[ -n "$filter_pattern" ]]; then
         # For directory tree filtering, match directories that start with the filter pattern
         # This allows filtering to current directory and its subdirectories
@@ -1772,12 +1805,12 @@ _freq_dirs_export_toml() {
         # Use configured limit
         filtered_data=$(_freq_dirs_get_merged_data)
     fi
-    
+
     if [[ -z "$filtered_data" ]]; then
         echo "❌ No directories match filter: ${filter_pattern:-all}"
         return 1
     fi
-    
+
     # Start building TOML
     {
         # Metadata section
@@ -1790,13 +1823,13 @@ _freq_dirs_export_toml() {
         echo "sort_method = \\"$FREQ_SORT_BY\\""
         echo "directories_shown = $FREQ_SHOW_COUNT"
         echo ""
-        
+
         # Calculate summary statistics
         local total_dirs=0
         local total_visits=0
         local total_time=0
         local total_commits=0
-        
+
         while IFS='|' read -r dir count time git_count period; do
             [[ -z "$dir" ]] && continue
             total_dirs=$((total_dirs + 1))
@@ -1804,7 +1837,7 @@ _freq_dirs_export_toml() {
             total_time=$((total_time + ${time:-0}))
             total_commits=$((total_commits + ${git_count:-0}))
         done <<< "$filtered_data"
-        
+
         # Summary section
         echo "[summary]"
         echo "total_directories = $total_dirs"
@@ -1813,11 +1846,11 @@ _freq_dirs_export_toml() {
         echo "total_time_formatted = \\"$(_freq_dirs_format_time $total_time)\\""
         echo "total_commits = $total_commits"
         echo ""
-        
+
         # Time patterns (if we have session data)
         if [[ -s "$FREQ_DIRS_SESSIONS" ]]; then
             echo "[time_patterns]"
-            
+
             # Find peak hour
             local hour_counts=$(mktemp)
             cat "$FREQ_DIRS_SESSIONS" | while IFS='|' read -r dir start_time end_time duration; do
@@ -1826,13 +1859,13 @@ _freq_dirs_export_toml() {
                     date -d "@$start_time" +%H 2>/dev/null >> "$hour_counts" || true
                 fi
             done
-            
+
             if [[ -s "$hour_counts" ]]; then
                 local peak_hour=$(sort "$hour_counts" | uniq -c | sort -rn | head -1 | awk '{print $2}')
                 [[ -n "$peak_hour" ]] && echo "peak_hour = ${peak_hour}"
             fi
             rm -f "$hour_counts"
-            
+
             # Average session duration
             local session_count=0
             local total_session_time=0
@@ -1842,18 +1875,18 @@ _freq_dirs_export_toml() {
                     total_session_time=$((total_session_time + duration))
                 fi
             done < "$FREQ_DIRS_SESSIONS"
-            
+
             if [[ $session_count -gt 0 ]]; then
                 local avg_time=$((total_session_time / session_count))
                 echo "average_session_minutes = $((avg_time / 60))"
             fi
             echo ""
         fi
-        
+
         # Export each directory
         while IFS='|' read -r dir count time git_count period; do
             [[ -z "$dir" ]] && continue
-            
+
             echo "[[directories]]"
             echo "path = \\"$dir\\""
             echo "visits = $count"
@@ -1861,12 +1894,12 @@ _freq_dirs_export_toml() {
             echo "time_formatted = \\"$(_freq_dirs_format_time ${time:-0})\\""
             echo "last_visited = \\"$period\\""
             echo "git_commits = ${git_count:-0}"
-            
+
             # Add tools used in this directory
             if [[ "$FREQ_TRACK_TOOLS" == "true" ]] && [[ -s "$FREQ_DIRS_TOOLS" ]]; then
                 local tools_data=$(grep "^${dir}|" "$FREQ_DIRS_TOOLS" 2>/dev/null | \\
                     awk -F'|' '{print $2}' | sort | uniq -c | sort -rn | head -10)
-                
+
                 if [[ -n "$tools_data" ]]; then
                     echo ""
                     echo "[directories.tools_used]"
@@ -1875,7 +1908,7 @@ _freq_dirs_export_toml() {
                     done <<< "$tools_data"
                 fi
             fi
-            
+
             # Add git categories if available
             if [[ "$FREQ_TRACK_GIT" == "true" ]] && [[ $git_count -gt 0 ]]; then
                 echo ""
@@ -1888,41 +1921,41 @@ _freq_dirs_export_toml() {
                     echo "# No categorized commits found"
                 fi
             fi
-            
+
             echo ""
         done <<< "$filtered_data"
-        
+
         # Tools section - show top N tools and where they're used
         if [[ "$FREQ_TRACK_TOOLS" == "true" ]] && [[ -s "$FREQ_DIRS_TOOLS" ]]; then
             echo "# Top Tools Analysis"
             echo "# Shows where each tool is most frequently used"
             echo ""
-            
+
             # Collect all tool usage for filtered directories
             local all_tools=$(mktemp)
             while IFS='|' read -r dir count time git_count period; do
                 [[ -z "$dir" ]] && continue
                 grep "^${dir}|" "$FREQ_DIRS_TOOLS" >> "$all_tools" 2>/dev/null || true
             done <<< "$filtered_data"
-            
+
             if [[ -s "$all_tools" ]]; then
                 # Get top N tools
                 local top_n="${FREQ_SHOW_COUNT:-5}"
                 local top_tools=$(awk -F'|' '{print $2}' "$all_tools" | sort | uniq -c | sort -rn | head -n "$top_n" | awk '{print $2}')
-                
+
                 while read tool; do
                     [[ -z "$tool" ]] && continue
-                    
+
                     echo "[tools.$tool]"
-                    
+
                     # Get total uses
                     local total=$(grep "|${tool}|" "$all_tools" | wc -l)
                     echo "total_uses = $total"
-                    
+
                     # Get category
                     local category=$(_freq_dirs_get_tool_category "$tool")
                     echo "category = \\"$category\\""
-                    
+
                     # Show top directories where this tool is used
                     echo "directories = ["
                     grep "|${tool}|" "$all_tools" | awk -F'|' '{print $1}' | sort | uniq -c | sort -rn | head -5 | while read count dir; do
@@ -1935,12 +1968,12 @@ _freq_dirs_export_toml() {
             fi
             rm -f "$all_tools"
         fi
-        
+
         # Navigation patterns
         if [[ -s "$FREQ_DIRS_SESSIONS" ]]; then
             echo "# Navigation Patterns"
             echo ""
-            
+
             local patterns=$(mktemp)
             local prev_dir=""
             cat "$FREQ_DIRS_SESSIONS" | sort -t'|' -k2 -n | while IFS='|' read -r dir start_time end_time duration; do
@@ -1952,12 +1985,12 @@ _freq_dirs_export_toml() {
                     prev_dir="$dir"
                 fi
             done
-            
+
             if [[ -s "$patterns" ]]; then
                 sort "$patterns" | uniq -c | sort -rn | head -10 | while read count pattern; do
                     local from_dir=$(echo "$pattern" | awk -F' → ' '{print $1}')
                     local to_dir=$(echo "$pattern" | awk -F' → ' '{print $2}')
-                    
+
                     echo "[[navigation_patterns]]"
                     echo "from = \\"$from_dir\\""
                     echo "to = \\"$to_dir\\""
@@ -1967,9 +2000,9 @@ _freq_dirs_export_toml() {
             fi
             rm -f "$patterns"
         fi
-        
+
     } > "$output_path"
-    
+
     # Success message
     echo "✅ Exported PathWise data to $output_path"
     [[ -n "$filter_pattern" ]] && echo "   Filter applied: $filter_pattern"
@@ -1980,11 +2013,12 @@ _freq_dirs_export_toml() {
     echo ""
     echo "💡 Share this TOML with your team to show your work patterns!"
 }
-'''
+"""
 
-def generate_hooks():
+
+def generate_hooks() -> str:
     """Generate shell hooks and initialization"""
-    return '''
+    return """
 # Startup display function
 _FREQ_DIRS_SHOWN=false
 _show_freq_dirs_once() {
@@ -1992,12 +2026,12 @@ _show_freq_dirs_once() {
         return
     fi
     _FREQ_DIRS_SHOWN=true
-    
+
     # Quick check for data
     if [[ -s "$HOME/.frequent_dirs.today" ]] || [[ -s "$HOME/.frequent_dirs.yesterday" ]]; then
         wfreq
     fi
-    
+
     # Remove from precmd after showing
     precmd_functions=(${precmd_functions[@]/_show_freq_dirs_once})
 }
@@ -2024,12 +2058,13 @@ _freq_dirs_setup_aliases
 
 # Initialize session tracking
 FREQ_SESSION_START=$(date +%s)
-'''
+"""
 
-def main():
+
+def main() -> None:
     """Main function to build the plugin"""
     print("Building PathWise plugin...")
-    
+
     # Generate all parts
     plugin_content = ""
     plugin_content += generate_header()
@@ -2050,15 +2085,16 @@ def main():
     plugin_content += generate_freq_command()
     plugin_content += generate_setup_functions()
     plugin_content += generate_hooks()
-    
+
     # Write to file
-    output_path = "/home/mathew/projects/zshplugs/pathwise/pathwise.plugin.zsh"
-    with open(output_path, "w") as f:
+    output_path = Path(__file__).parent / "pathwise.plugin.zsh"
+    with output_path.open("w") as f:
         f.write(plugin_content)
-    
+
     print(f"✅ Plugin built successfully: {output_path}")
     print(f"   Total size: {len(plugin_content)} bytes")
     print(f"   Lines: {plugin_content.count(chr(10))} lines")
+
 
 if __name__ == "__main__":
     main()
