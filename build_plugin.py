@@ -1070,54 +1070,82 @@ _freq_dirs_generate_insights() {
 def generate_data_merge():
     """Generate data merging function"""
     return '''
-# Merge today's and yesterday's data for display
+# Merge today's and yesterday's data for display with cumulative totals
 _freq_dirs_get_merged_data() {
     local show_count="${1:-$FREQ_SHOW_COUNT}"
-    local merged_file=$(mktemp)
+    local temp_file=$(mktemp)
     local sorted_file=$(mktemp)
     
-    # Add today's data with "today" marker and priority weight
+    # Use associative arrays to accumulate data
+    typeset -A dir_visits
+    typeset -A dir_time
+    typeset -A dir_commits
+    typeset -A dir_periods
+    
+    # Process today's data
     if [[ -s "$FREQ_DIRS_TODAY" ]]; then
         while IFS='|' read -r dir count time; do
             [[ -z "$time" ]] && time=0
             local git_count=$(_freq_dirs_get_git_count "$dir")
-            # Add priority weight (2 for today) as first field for sorting
-            echo "2|${dir}|${count}|${time}|${git_count}|today" >> "$merged_file"
+            
+            # Accumulate values
+            dir_visits[$dir]=$((${dir_visits[$dir]:-0} + count))
+            dir_time[$dir]=$((${dir_time[$dir]:-0} + time))
+            dir_commits[$dir]=$((${dir_commits[$dir]:-0} + git_count))
+            
+            # Track period
+            if [[ -z "${dir_periods[$dir]}" ]]; then
+                dir_periods[$dir]="today"
+            else
+                dir_periods[$dir]="combined"
+            fi
         done < "$FREQ_DIRS_TODAY"
     fi
     
-    # Add yesterday's data with "yesterday" marker - allow dual entries
+    # Process yesterday's data
     if [[ -s "$FREQ_DIRS_YESTERDAY" ]]; then
         while IFS='|' read -r dir count time; do
             [[ -z "$time" ]] && time=0
-            # Add priority weight (1 for yesterday) as first field for sorting
-            # Note: We now allow yesterday's data even if directory exists in today
-            echo "1|${dir}|${count}|${time}|0|yesterday" >> "$merged_file"
+            
+            # Accumulate values
+            dir_visits[$dir]=$((${dir_visits[$dir]:-0} + count))
+            dir_time[$dir]=$((${dir_time[$dir]:-0} + time))
+            # Note: We don't add git commits from yesterday as they're already in FREQ_DIRS_GIT
+            
+            # Track period
+            if [[ -z "${dir_periods[$dir]}" ]]; then
+                dir_periods[$dir]="yesterday"
+            elif [[ "${dir_periods[$dir]}" == "today" ]]; then
+                dir_periods[$dir]="combined"
+            fi
         done < "$FREQ_DIRS_YESTERDAY"
     fi
     
-    # Sort based on configuration with period priority
+    # Output all directories with their cumulative totals
+    for dir in ${(k)dir_visits}; do
+        echo "${dir}|${dir_visits[$dir]}|${dir_time[$dir]}|${dir_commits[$dir]}|${dir_periods[$dir]}" >> "$temp_file"
+    done
+    
+    # Sort based on configuration using cumulative totals
     case "$FREQ_SORT_BY" in
         visits)
-            # Sort by: 1) period weight (today first), 2) visit count
-            sort -t'|' -k1,1rn -k3,3rn "$merged_file" > "$sorted_file"
+            # Sort by cumulative visit count
+            sort -t'|' -k2,2rn "$temp_file" > "$sorted_file"
             ;;
         commits)
-            # Sort by: 1) period weight (today first), 2) git commits
-            sort -t'|' -k1,1rn -k5,5rn "$merged_file" > "$sorted_file"
+            # Sort by cumulative git commits
+            sort -t'|' -k4,4rn "$temp_file" > "$sorted_file"
             ;;
         time|*)
-            # Sort by: 1) period weight (today first), 2) time spent
-            sort -t'|' -k1,1rn -k4,4rn "$merged_file" > "$sorted_file"
+            # Sort by cumulative time spent
+            sort -t'|' -k3,3rn "$temp_file" > "$sorted_file"
             ;;
     esac
     
-    # Remove the priority weight field - don't limit here, let display handle it
-    while IFS='|' read -r weight dir count time git_count period; do
-        echo "${dir}|${count}|${time}|${git_count}|${period}"
-    done < "$sorted_file"
+    # Output sorted data
+    cat "$sorted_file"
     
-    rm -f "$merged_file" "$sorted_file"
+    rm -f "$temp_file" "$sorted_file"
 }
 '''
 
