@@ -8,7 +8,20 @@ from typing import Dict, List, Set
 # Strong indicators - These definitively mark a project root
 # Format: {indicator_file/dir: project_type}
 STRONG_INDICATORS: Dict[str, str] = {
-    # Python - Check first for language-specific identification
+    # C/C++ - Check first for compiled language projects
+    "Makefile": "c",
+    "makefile": "c",
+    "GNUmakefile": "c",
+    "CMakeLists.txt": "cpp",
+    "configure": "c",  # Autotools
+    "configure.ac": "c",  # Autotools source
+    "meson.build": "c",  # Meson build system
+    "SConstruct": "c",  # SCons
+    "*.c": "c",  # C source files
+    "*.cpp": "cpp",  # C++ source files
+    "*.cc": "cpp",  # C++ source files
+    "*.cxx": "cpp",  # C++ source files
+    # Python - Check second for interpreted languages
     "pyproject.toml": "python",
     "setup.py": "python",
     "setup.cfg": "python",
@@ -73,12 +86,7 @@ STRONG_INDICATORS: Dict[str, str] = {
 # Medium indicators - These suggest but don't guarantee a project root
 # Used as fallback if no strong indicators found
 MEDIUM_INDICATORS: Dict[str, str] = {
-    # Build Systems
-    "Makefile": "make",
-    "makefile": "make",
-    "GNUmakefile": "make",
-    "CMakeLists.txt": "cmake",
-    "meson.build": "meson",
+    # Build Systems (ones not already in strong indicators)
     "BUILD": "bazel",
     "WORKSPACE": "bazel",
     # Container/VM

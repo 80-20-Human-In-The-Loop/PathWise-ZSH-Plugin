@@ -405,10 +405,6 @@ _freq_dirs_analyze_commits() {
                 local keyword2=$(echo "$selected" | sed -n '2p')
                 local keyword3=$(echo "$selected" | sed -n '3p')
 
-                printf "  💡 \033[33mTip:\033[0m Use keywords like " >> "$temp_file"
-                printf "\033[91m%s\033[0m, " "$keyword1" >> "$temp_file"
-                printf "\033[92m%s\033[0m, or " "$keyword2" >> "$temp_file"
-                printf "\033[94m%s\033[0m in commits\n" "$keyword3" >> "$temp_file"
             fi
 
             # Find most active git project
@@ -1479,10 +1475,10 @@ _freq_dirs_get_merged_data() {
 FREQ_DIRS_PROJECT_CACHE="${HOME}/.frequent_dirs.project_cache"
 
 # Strong project indicators
-FREQ_PROJECT_STRONG_INDICATORS=("pyproject.toml" "setup.py" "setup.cfg" "Pipfile" "poetry.lock" "requirements.txt" "tox.ini" "venv" ".venv" "package.json" "yarn.lock" "pnpm-lock.yaml" "bun.lockb" "lerna.json" ".git" ".svn" ".hg" ".bzr" ".fossil" "Cargo.toml" "go.mod" "go.sum" "Gemfile" "Gemfile.lock" ".ruby-version" "pom.xml" "build.gradle" "build.gradle.kts" "settings.gradle" "settings.gradle.kts" "*.sln" "*.csproj" "*.fsproj" "*.vbproj" "composer.json" "composer.lock" "mix.exs" "project.clj" "deps.edn" "build.sbt" "stack.yaml" "*.cabal" "Package.swift" "pubspec.yaml" "pubspec.lock")
+FREQ_PROJECT_STRONG_INDICATORS=("Makefile" "makefile" "GNUmakefile" "CMakeLists.txt" "configure" "configure.ac" "meson.build" "SConstruct" "*.c" "*.cpp" "*.cc" "*.cxx" "pyproject.toml" "setup.py" "setup.cfg" "Pipfile" "poetry.lock" "requirements.txt" "tox.ini" "venv" ".venv" "package.json" "yarn.lock" "pnpm-lock.yaml" "bun.lockb" "lerna.json" ".git" ".svn" ".hg" ".bzr" ".fossil" "Cargo.toml" "go.mod" "go.sum" "Gemfile" "Gemfile.lock" ".ruby-version" "pom.xml" "build.gradle" "build.gradle.kts" "settings.gradle" "settings.gradle.kts" "*.sln" "*.csproj" "*.fsproj" "*.vbproj" "composer.json" "composer.lock" "mix.exs" "project.clj" "deps.edn" "build.sbt" "stack.yaml" "*.cabal" "Package.swift" "pubspec.yaml" "pubspec.lock")
 
 # Medium project indicators  
-FREQ_PROJECT_MEDIUM_INDICATORS=("Makefile" "makefile" "GNUmakefile" "CMakeLists.txt" "meson.build" "BUILD" "WORKSPACE" "Dockerfile" "docker-compose.yml" "docker-compose.yaml" "Containerfile" ".dockerignore" "Vagrantfile" "webpack.config.js" "vite.config.js" "vite.config.ts" "rollup.config.js" "gulpfile.js" "Gruntfile.js" "tsconfig.json" "angular.json" ".angular" "nx.json" "next.config.js" "nuxt.config.js" "vue.config.js" "svelte.config.js" ".eslintrc.js" ".eslintrc.json" ".prettierrc" ".prettierrc.json" ".editorconfig" ".travis.yml" ".gitlab-ci.yml" "Jenkinsfile" ".circleci" ".github" "azure-pipelines.yml" "README.md" "README.rst" "README.txt" "docs" "documentation")
+FREQ_PROJECT_MEDIUM_INDICATORS=("BUILD" "WORKSPACE" "Dockerfile" "docker-compose.yml" "docker-compose.yaml" "Containerfile" ".dockerignore" "Vagrantfile" "webpack.config.js" "vite.config.js" "vite.config.ts" "rollup.config.js" "gulpfile.js" "Gruntfile.js" "tsconfig.json" "angular.json" ".angular" "nx.json" "next.config.js" "nuxt.config.js" "vue.config.js" "svelte.config.js" ".eslintrc.js" ".eslintrc.json" ".prettierrc" ".prettierrc.json" ".editorconfig" ".travis.yml" ".gitlab-ci.yml" "Jenkinsfile" ".circleci" ".github" "azure-pipelines.yml" "README.md" "README.rst" "README.txt" "docs" "documentation")
 
 # Find project root for a directory
 _freq_dirs_find_project_root() {
@@ -1519,367 +1515,7 @@ clear_cache()
 " 2>/dev/null
 }
 
-PATHWISE_TIPS=(
-    "pathwise:Use 'wj1' through 'wj5' to jump to your most visited directories instantly"
-    "pathwise:Run 'wfreq --insights' to see detailed analytics about your navigation patterns"
-    "pathwise:PathWise tracks time automatically - stay in a directory 5+ seconds to record it"
-    "pathwise:Use 'wfreq --config' to customize tracking settings and display preferences"
-    "pathwise:Your jump shortcuts update dynamically as your habits change throughout the day"
-    "pathwise:Run 'wfreq --reset' to clear all data and start fresh with new tracking"
-    "pathwise:PathWise rotates data daily at midnight - yesterday becomes your fallback"
-    "pathwise:Enable git tracking to see what type of work you do in each directory"
-    "pathwise:Sort by 'time' to see where you spend most time, or 'visits' for frequency"
-    "pathwise:PathWise learns your patterns - the more you navigate, the smarter it gets"
-    "pathwise:Check 'wfreq --insights' weekly to understand your productivity patterns"
-    "pathwise:Jump shortcuts persist across terminal sessions until your habits change"
-    "pathwise:Use PathWise data to identify time sinks and optimize your workflow"
-    "pathwise:PathWise tracks both visits and time - giving you complete navigation insights"
-    "pathwise:Configure minimum time to avoid tracking quick directory traversals"
-    "pathwise:Use 'wfreq --tools' to see which tools you use most in each directory"
-    "pathwise:Tool tracking reveals your workflow - see if you edit, compile, or debug more"
-    "pathwise:Export your work patterns with 'wfreq --export' to share with teammates"
-    "pathwise:Use 'wfreq --export -filter=python' to export only Python-related project data"
-    "pathwise:Export current project with 'wfreq --export project.toml -filter=.' for focused reports"
-    "pathwise:TOML exports show WHERE you use each tool - perfect for onboarding new developers"
-    "pathwise:Share your exported TOML with teammates to demonstrate project workflows"
-    "pathwise:Filter exports by directory patterns to create focused work analytics"
-    "pathwise:Exported TOML files contain all your insights: time patterns, tools, and navigation flows"
-    "zsh:Use 'cd -' to quickly jump back to your previous directory"
-    "zsh:Press Ctrl+R to search through your command history interactively"
-    "zsh:Use '!!' to repeat the last command, or 'sudo !!' to run it with sudo"
-    "zsh:Tab completion works for commands, files, and even git branches"
-    "zsh:Use 'cd **/<tab>' to fuzzy search for directories recursively"
-    "zsh:Create permanent aliases in ~/.zshrc for your common commands"
-    "zsh:Use 'which <command>' to find where a command is located"
-    "zsh:Press Alt+. to insert the last argument from previous command"
-    "zsh:Use 'dirs -v' to see your directory stack, 'cd ~N' to jump to entry N"
-    "zsh:Enable case-insensitive completion: 'zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'"
-    "zsh:Use 'bindkey' to see all keyboard shortcuts in your current shell"
-    "zsh:Press Ctrl+L to clear the screen (faster than typing 'clear')"
-    "zsh:Use 'fc' to edit and re-run the last command in your editor"
-    "zsh:Set CDPATH to add common base directories for quick navigation"
-    "zsh:Use parameter expansion: \${var:-default} for default values"
-    "linux:Use 'ls -lah' to see all files with human-readable sizes"
-    "linux:Press Ctrl+Z to suspend a process, 'bg' to background it, 'fg' to foreground"
-    "linux:Use 'df -h' to check disk space, 'du -sh *' for directory sizes"
-    "linux:The 'tree' command shows directory structure visually (install if needed)"
-    "linux:Use 'grep -r \"pattern\" .' to search recursively in current directory"
-    "linux:Press Ctrl+D to logout or exit (cleaner than typing 'exit')"
-    "linux:Use 'ps aux | grep <name>' to find processes, 'kill -9 <pid>' to force stop"
-    "linux:The 'watch' command repeats any command periodically: 'watch -n 2 ls'"
-    "linux:Use 'chmod +x file' to make a file executable quickly"
-    "linux:Redirect errors with '2>' or both output and errors with '&>'"
-    "linux:Use 'find . -name \"*.txt\" -mtime -7' to find files modified in last 7 days"
-    "linux:The 'tee' command shows output and saves it: 'ls | tee output.txt'"
-    "linux:Use 'tail -f logfile' to watch a log file in real-time"
-    "linux:Create multiple directories at once: 'mkdir -p parent/child/grandchild'"
-    "linux:Use 'ln -s target link' to create symbolic links for easy access"
-    "productivity:Organize projects in a consistent directory structure for faster navigation"
-    "productivity:Use descriptive directory names - future you will thank present you"
-    "productivity:Keep your home directory clean - use subdirectories for organization"
-    "productivity:Create a ~/tmp directory for temporary work that you clean regularly"
-    "productivity:Use version control (git) in all project directories for safety"
-    "productivity:Batch similar tasks together to reduce context switching"
-    "productivity:Review your PathWise insights weekly to optimize your workflow"
-    "productivity:Set up project templates to standardize new project creation"
-    "productivity:Use meaningful commit messages - they're documentation for future you"
-    "productivity:Take breaks - productivity isn't about time spent but work accomplished"
-    "productivity:Document your setup and workflows in a personal knowledge base"
-    "productivity:Automate repetitive tasks with shell scripts or aliases"
-    "productivity:Use virtual environments for Python projects to avoid conflicts"
-    "productivity:Keep a 'notes.md' file in project roots for quick thoughts"
-    "productivity:Learn keyboard shortcuts for your most-used applications"
-    "git:Use 'git status' frequently to understand your repository state"
-    "git:Run 'git diff --staged' to review changes before committing"
-    "git:Use 'git log --oneline --graph' for a visual commit history"
-    "git:Create meaningful branch names: feature/what-it-does"
-    "git:Use 'git stash' to temporarily save work when switching contexts"
-    "git:Run 'git commit --amend' to fix the last commit message"
-    "git:Use 'git reset HEAD~1' to undo the last commit (keeping changes)"
-    "git:Set up git aliases: 'git config --global alias.co checkout'"
-    "git:Use 'git blame <file>' to see who changed each line and when"
-    "git:Run 'git clean -fd' to remove untracked files and directories"
-    "git:Use '.gitignore' to exclude files from version control"
-    "git:Create atomic commits - each commit should do one thing"
-    "git:Use 'git bisect' to find which commit introduced a bug"
-    "git:Run 'git reflog' to recover lost commits or branches"
-    "git:Tag releases: 'git tag -a v1.0.0 -m \"Version 1.0.0\"'"
-    "advanced:Use process substitution: 'diff <(ls dir1) <(ls dir2)'"
-    "advanced:Chain commands: '&&' for success, '||' for failure, ';' for always"
-    "advanced:Use brace expansion: 'cp file.{txt,bak}' copies file.txt to file.bak"
-    "advanced:Export functions in zsh: 'typeset -f -x function_name'"
-    "advanced:Use 'exec' to replace the current shell with a command"
-    "advanced:Create here-documents: 'cat << EOF > file.txt'"
-    "advanced:Use extended globbing: 'setopt EXTENDED_GLOB' for advanced patterns"
-    "advanced:Redirect stdout and stderr separately: 'cmd 1>out.txt 2>err.txt'"
-    "advanced:Use coprocesses for bidirectional communication with commands"
-    "advanced:Set up zsh hooks: add_zsh_hook for preexec, precmd, chpwd"
-    "advanced:Use parameter expansion for string manipulation: \${var%suffix}"
-    "advanced:Create associative arrays: 'typeset -A hash' in zsh"
-    "advanced:Use 'zmodload' to load additional zsh modules for extra features"
-    "advanced:Profile shell startup: 'zsh -x' to debug slow initialization"
-    "advanced:Use 'compdef' to create custom completions for your functions"
-    "bash_strings:Trim leading/trailing spaces: '\${var##+([[:space:]])}' and '\${var%%+([[:space:]])}'"
-    "bash_strings:Get string length: '\${#var}' returns character count without wc"
-    "bash_strings:Split string on delimiter: 'IFS=: read -ra arr <<< \"\$PATH\"' creates array"
-    "bash_strings:Lowercase string: '\${var,,}' converts to lowercase in Bash 4+"
-    "bash_strings:Uppercase string: '\${var^^}' converts to uppercase in Bash 4+"
-    "bash_strings:Reverse case: '\${var~~}' toggles case of all characters"
-    "bash_strings:Remove spaces: '\${var// /}' deletes all spaces from string"
-    "bash_strings:Check if string contains substring: '[[ \$var == *\"text\"* ]]' pattern match"
-    "bash_strings:Check string starts with: '[[ \$var == text* ]]' prefix pattern"
-    "bash_strings:Check string ends with: '[[ \$var == *text ]]' suffix pattern"
-    "bash_strings:Get first N chars: '\${var:0:10}' extracts first 10 characters"
-    "bash_strings:Get last N chars: '\${var: -10}' extracts last 10 characters (note space)"
-    "bash_strings:Get substring by offset: '\${var:10:5}' gets 5 chars starting at position 10"
-    "bash_strings:Strip prefix: '\${var#prefix}' removes shortest prefix match"
-    "bash_strings:Strip suffix: '\${var%suffix}' removes shortest suffix match"
-    "bash_strings:Percent-encode string: Use printf '%s' \"\$var\" | od -An -tx1 | tr ' ' %"
-    "bash_strings:Regex match: '[[ \$var =~ ^[0-9]+\$ ]]' checks if string is all digits"
-    "bash_arrays:Reverse array: 'for ((i=\${#arr[@]}-1; i>=0; i--)); do rev+=(\"\${arr[i]}\"); done'"
-    "bash_arrays:Remove duplicates: Keep unique values with associative array as set"
-    "bash_arrays:Random array element: '\${arr[RANDOM % \${#arr[@]}]}' picks random item"
-    "bash_arrays:Cycle through array: Use modulo '\${arr[i++ % \${#arr[@]}]}' for infinite loop"
-    "bash_arrays:Toggle between values: 'var=\$((1-var))' switches between 0 and 1"
-    "bash_loops:Loop over range: 'for i in {1..10}; do ...; done' iterates 1 to 10"
-    "bash_loops:Variable range: 'for ((i=start; i<=end; i++)); do ...; done' with variables"
-    "bash_loops:Loop over array: 'for elem in \"\${arr[@]}\"; do ...; done' iterates elements"
-    "bash_loops:Loop with index: 'for i in \"\${!arr[@]}\"; do echo \${arr[i]}; done'"
-    "bash_loops:Loop file contents: 'while IFS= read -r line; do ...; done < file'"
-    "bash_loops:Loop over files: 'for f in *.txt; do [[ -e \$f ]] || continue; ...; done'"
-    "bash_file_handling:Read file to string: 'var=\$(<file)' faster than cat for variable assignment"
-    "bash_file_handling:Read file to array: 'readarray -t arr < file' or mapfile for line array"
-    "bash_file_handling:Get first line: 'IFS= read -r line < file' reads just first line"
-    "bash_file_handling:Get last N lines: Store in array and print last elements for tail behavior"
-    "bash_file_handling:Line count: 'while IFS= read -r _; do ((count++)); done < file'"
-    "bash_file_handling:Random line: Read to array then '\${arr[RANDOM % \${#arr[@]}]}'"
-    "bash_file_handling:Create temp file: 'tmp=\$(mktemp) || exit 1' with proper error handling"
-    "bash_file_handling:Extract path parts: '\${file##*/}' for basename, '\${file%/*}' for dirname"
-    "bash_conditionals:File tests: '[[ -f \$file ]]' for regular file, '-d' for directory, '-e' exists"
-    "bash_conditionals:String empty check: '[[ -z \$var ]]' tests if empty, '-n' for non-empty"
-    "bash_conditionals:Ternary operator: 'result=\${var:+set}' expands to 'set' if var is non-empty"
-    "bash_conditionals:Check if in array: Loop and test each element or use associative array"
-    "bash_variables:Name reference: 'declare -n ref=var' creates reference to another variable"
-    "bash_variables:Default value: '\${var:-default}' uses default if var is unset or empty"
-    "bash_arithmetic:Math operations: '((result = 5 + 3 * 2))' evaluates arithmetic expressions"
-    "bash_arithmetic:Sequence generation: 'for i in {1..100}; do ...; done' without seq command"
-    "bash_traps:Cleanup on exit: 'trap cleanup EXIT' runs cleanup function on script exit"
-    "bash_traps:Ignore Ctrl+C: 'trap '' INT' ignores interrupt signal (SIGINT)"
-    "bash_traps:React to signals: 'trap \"echo Caught\" INT TERM' handles multiple signals"
-    "bash_traps:Run in background: 'command &' runs async, 'wait' to synchronize"
-    "bash_traps:Timeout command: Use timeout with trap for time-limited execution"
-    "bash_terminal:Get terminal size: 'read -r LINES COLUMNS < <(stty size)' without tput"
-    "bash_terminal:Move cursor: 'printf '\e[5;10H'' moves to line 5, column 10"
-    "bash_terminal:Clear screen: 'printf '\e[2J\e[H'' clears and homes cursor"
-    "bash_internals:Get function name: '\${FUNCNAME[0]}' returns current function name"
-    "bash_internals:Get hostname: '\${HOSTNAME:-\$(hostname)}' without external command"
-    "bash_internals:Brace expansion: '{1..10}' expands to '1 2 3 4 5 6 7 8 9 10'"
-    "bash_internals:Check command type: 'type -t cmd' returns alias/function/builtin/file"
-    "bash_other:UUID generation: Read from /proc/sys/kernel/random/uuid if available"
-    "bash_other:Progress bar: Use printf with carriage return '\r' to update same line"
-    "bash_other:Get epoch: 'printf '%(%s)T' -1' in Bash 4.2+ instead of date +%s"
-    "bash_other:Format date: 'printf '%(%Y-%m-%d)T' -1' formats without date command"
-    "bash_other:Hex to RGB: Use printf '%d' 0x\${hex:0:2} to convert hex color values"
-    "bash_other:RGB to hex: 'printf '#%02x%02x%02x' \$r \$g \$b' converts RGB to hex"
-    "bash_other:Pseudo-random: '\$((RANDOM % 100))' gives 0-99, seed with RANDOM=seed"
-    "tmux:Split horizontally: Ctrl+b % | Split vertically: Ctrl+b \""
-    "tmux:Navigate panes: Ctrl+b + arrow keys for quick pane switching"
-    "tmux:Create new window: Ctrl+b c | Switch windows: Ctrl+b 0-9"
-    "tmux:Detach session: Ctrl+b d | Reattach: 'tmux attach'"
-    "tmux:List sessions: 'tmux ls' | Kill session: 'tmux kill-session -t name'"
-    "tmux:Rename window: Ctrl+b , | Rename session: Ctrl+b \$"
-    "tmux:Zoom pane to fullscreen: Ctrl+b z (toggle zoom)"
-    "tmux:Copy mode: Ctrl+b [ to scroll and copy text, q to exit"
-    "tmux:Resize panes: Hold Ctrl+b and use arrow keys"
-    "tmux:Synchronize panes: Ctrl+b : then 'setw synchronize-panes' for parallel input"
-    "tmux:Save layout: Ctrl+b : then 'list-windows -F' to see layout string"
-    "tmux:Search in copy mode: Ctrl+b [ then Ctrl+s (forward) or Ctrl+r (reverse)"
-    "tmux:Break pane to window: Ctrl+b ! moves current pane to new window"
-    "tmux:Join panes: 'join-pane -s window.pane' merges panes"
-    "tmux:Persist sessions: Use 'tmux-resurrect' plugin to save/restore sessions"
-    "terminal_features:Most terminals support Ctrl+Shift+T for new tab, Ctrl+Shift+W to close"
-    "terminal_features:Click URLs: Hold Ctrl while clicking links in most modern terminals"
-    "terminal_features:Select rectangular blocks: Hold Alt while selecting text"
-    "terminal_features:Zoom text: Ctrl+Plus/Minus adjusts font size in most terminals"
-    "terminal_features:Search output: Ctrl+Shift+F searches scrollback in many terminals"
-    "terminal_features:Clear scrollback: Ctrl+Shift+K in some terminals, 'clear && printf '\e[3J'' in others"
-    "terminal_features:GPU rendering: Enable in preferences for smoother scrolling on high DPI"
-    "terminal_features:True color support: Test with 'printf '\x1b[38;2;255;100;0mTRUECOLOR\x1b[0m\n''"
-    "terminal_features:Set title: 'echo -ne '\033]0;Your Title\007'' changes terminal window title"
-    "terminal_features:Save output: Use 'script' command to record entire terminal session"
-    "terminal_features:Unicode support: Modern terminals handle emoji and special chars natively 🚀"
-    "terminal_features:Alt+click in many terminals positions cursor at click location"
-    "terminal_features:Double-click selects word, triple-click selects entire line"
-    "terminal_features:Middle mouse button pastes selection buffer on Linux"
-    "terminal_features:Ctrl+L clears screen while preserving scrollback history"
-    "ssh:SSH config: Create ~/.ssh/config for host aliases and settings"
-    "ssh:Agent forwarding: 'ssh -A' forwards your SSH keys to remote host"
-    "ssh:Port forwarding: 'ssh -L 8080:localhost:80 server' forwards remote port"
-    "ssh:Reverse tunnel: 'ssh -R 9000:localhost:3000 server' exposes local port"
-    "ssh:Keep alive: Add 'ServerAliveInterval 60' to ~/.ssh/config"
-    "ssh:Jump hosts: 'ssh -J bastion target' or ProxyJump in config"
-    "ssh:SSH keys: 'ssh-copy-id user@host' installs your public key"
-    "ssh:Escape sequences: Type '~.' to disconnect hung session"
-    "ssh:Compression: 'ssh -C' enables compression for slow connections"
-    "ssh:X11 forwarding: 'ssh -X' allows running GUI apps remotely"
-    "ssh:Control master: Share connections with ControlPath in config"
-    "ssh:SOCKS proxy: 'ssh -D 8080 server' creates SOCKS5 proxy"
-    "ssh:Run command: 'ssh server \"command\"' executes and returns"
-    "ssh:Background tunnel: 'ssh -fNL 8080:localhost:80 server' runs in background"
-    "ssh:Verbose mode: 'ssh -vvv' for debugging connection issues"
-    "cli_tools:fzf: Press Ctrl+R after installing fzf for fuzzy command history search"
-    "cli_tools:ripgrep: 'rg pattern' is faster than grep and respects .gitignore"
-    "cli_tools:fd: 'fd pattern' is a fast, user-friendly alternative to find"
-    "cli_tools:bat: Enhanced cat with syntax highlighting and git integration"
-    "cli_tools:exa/eza: Modern ls replacement with tree view and git status"
-    "cli_tools:jq: 'curl api | jq .field' extracts JSON fields elegantly"
-    "cli_tools:htop/btop: Interactive process viewers superior to top"
-    "cli_tools:ncdu: NCurses disk usage analyzer for finding large files"
-    "cli_tools:tldr: Simplified man pages with practical examples"
-    "cli_tools:ag: The Silver Searcher - another fast code searching tool"
-    "cli_tools:httpie: 'http GET example.com' for human-friendly HTTP requests"
-    "cli_tools:delta: Beautiful git diff viewer with syntax highlighting"
-    "cli_tools:zoxide: Smarter cd that learns your habits (like PathWise!)"
-    "cli_tools:direnv: Auto-load environment variables per directory"
-    "cli_tools:entr: 'ls *.py | entr -c python main.py' auto-runs on file changes"
-    "docker:Clean everything: 'docker system prune -a' removes all unused data"
-    "docker:Live logs: 'docker logs -f container' follows log output"
-    "docker:Exec into container: 'docker exec -it container bash' for debugging"
-    "docker:Copy files: 'docker cp file container:/path' transfers files"
-    "docker:Resource stats: 'docker stats' shows real-time container metrics"
-    "docker:Build with no cache: 'docker build --no-cache .' forces fresh build"
-    "docker:Remove dangling images: 'docker image prune' cleans unnamed images"
-    "docker:List with formatting: 'docker ps --format \"table {{.Names}}\t{{.Status}}\"'"
-    "docker:Stop all containers: 'docker stop \$(docker ps -q)' halts everything"
-    "docker:Volume backup: 'docker run --rm -v vol:/data -v .:/backup busybox tar czf backup.tar.gz'"
-    "docker:Multi-stage builds: Use 'FROM image AS stage' for smaller final images"
-    "docker:Health checks: Add HEALTHCHECK to Dockerfile for container monitoring"
-    "docker:Use .dockerignore: Exclude files from build context for faster builds"
-    "docker:Layer caching: Order Dockerfile commands from least to most frequently changing"
-    "docker:Network debugging: 'docker run --rm -it nicolaka/netshoot' for network tools"
-    "performance:htop: Press F5 for tree view, F6 to sort by different columns"
-    "performance:iostat: 'iostat -x 1' shows detailed disk I/O statistics per second"
-    "performance:iotop: Requires sudo, shows which processes are doing disk I/O"
-    "performance:nethogs: 'sudo nethogs' displays bandwidth usage per process"
-    "performance:ss: Modern netstat - 'ss -tulpn' shows listening ports"
-    "performance:perf: 'perf top' shows real-time CPU function usage (needs root)"
-    "performance:strace: 'strace -c command' summarizes system calls made"
-    "performance:lsof: 'lsof -i :8080' finds process using specific port"
-    "performance:sar: System activity reporter - 'sar -u 1 5' for CPU over time"
-    "performance:vmstat: 'vmstat 1' reports virtual memory statistics"
-    "performance:dstat: Versatile replacement for vmstat, iostat, netstat"
-    "performance:glances: Comprehensive system monitor with web interface option"
-    "performance:pidstat: 'pidstat -r 1' shows memory usage per process over time"
-    "performance:tcpdump: 'sudo tcpdump -i any port 80' captures network packets"
-    "performance:time: 'time command' shows real/user/sys time for benchmarking"
-    "vim_nano:Vim: 'ci(' changes text inside parentheses, works with {, [, \", '"
-    "vim_nano:Vim: '.' repeats last change - powerful for repetitive edits"
-    "vim_nano:Vim: 'gg=G' auto-indents entire file"
-    "vim_nano:Vim: Ctrl+v for visual block mode - edit multiple lines at once"
-    "vim_nano:Vim: ':set paste' before pasting to preserve formatting"
-    "vim_nano:Vim: 'gf' opens file under cursor, Ctrl+o returns"
-    "vim_nano:Vim: ':w !sudo tee %' saves file with sudo when you forgot"
-    "vim_nano:Vim: 'qa' starts macro recording, 'q' stops, '@a' replays"
-    "vim_nano:Nano: Alt+6 copies line, Ctrl+K cuts, Ctrl+U pastes"
-    "vim_nano:Nano: Ctrl+W searches, Alt+W repeats search"
-    "vim_nano:Nano: Alt+A marks text, then navigate to select"
-    "vim_nano:Nano: Ctrl+T opens spell checker (if available)"
-    "vim_nano:Nano: Alt+N disables/enables line wrapping"
-    "vim_nano:Nano: Ctrl+_ goes to specific line number"
-    "vim_nano:Micro: Modern nano alternative with mouse support and familiar keybindings"
-    "security:Check permissions: 'ls -la' shows full permissions, 'stat file' for details"
-    "security:Fix permissions: 'chmod 600 ~/.ssh/id_rsa' secures private keys"
-    "security:Find SUID binaries: 'find / -perm -4000 2>/dev/null' lists setuid programs"
-    "security:Show open ports: 'sudo ss -tulpn' or 'sudo netstat -tulpn'"
-    "security:Firewall status: 'sudo ufw status verbose' on Ubuntu/Debian"
-    "security:Check listening services: 'sudo lsof -i -P -n | grep LISTEN'"
-    "security:GPG encrypt: 'gpg -c file' for symmetric, 'gpg -e -r recipient file' for asymmetric"
-    "security:Generate passwords: 'openssl rand -base64 32' or 'pwgen -sy 16'"
-    "security:Hash files: 'sha256sum file' to verify file integrity"
-    "security:Secure delete: 'shred -vfz -n 3 file' overwrites before deletion"
-    "security:SSH hardening: Disable root login and password auth in sshd_config"
-    "security:Audit logs: 'sudo journalctl -xe' for system logs, 'last' for login history"
-    "security:Check processes: 'ps aux --forest' shows process tree with users"
-    "security:File capabilities: 'getcap file' shows special capabilities"
-    "security:umask: Set to 077 for secure default file permissions"
-    "networking:Test connectivity: 'ping -c 4 google.com' sends 4 packets"
-    "networking:Trace route: 'traceroute google.com' or 'mtr google.com' for interactive"
-    "networking:DNS lookup: 'dig @8.8.8.8 example.com' or 'nslookup example.com'"
-    "networking:Port check: 'nc -zv host 22' tests if port 22 is open"
-    "networking:Network interfaces: 'ip a' or 'ifconfig' shows all interfaces"
-    "networking:Routing table: 'ip route' or 'route -n' displays routes"
-    "networking:ARP cache: 'arp -a' shows IP to MAC address mappings"
-    "networking:Bandwidth test: 'curl -o /dev/null http://speedtest.tele2.net/1GB.zip'"
-    "networking:WiFi networks: 'nmcli dev wifi' lists available networks"
-    "networking:Connect WiFi: 'nmcli dev wifi connect SSID password pass'"
-    "networking:Show connections: 'nmcli con show' lists NetworkManager connections"
-    "networking:HTTP headers: 'curl -I https://example.com' shows response headers"
-    "networking:Download with resume: 'wget -c URL' or 'curl -C - -O URL'"
-    "networking:Network usage: 'vnstat' shows network traffic statistics"
-    "networking:Local network scan: 'nmap -sn 192.168.1.0/24' finds devices"
-    "packages:APT: 'apt list --installed' shows all installed packages"
-    "packages:APT: 'apt-cache policy package' shows available versions"
-    "packages:APT: 'apt-mark showmanual' lists manually installed packages"
-    "packages:DNF/YUM: 'dnf history' shows transaction history with undo option"
-    "packages:Python venv: 'python -m venv env && source env/bin/activate'"
-    "packages:pip: 'pip freeze > requirements.txt' saves current packages"
-    "packages:npm: 'npm ci' for faster, reproducible installs from package-lock"
-    "packages:npm: 'npx package' runs package without installing globally"
-    "packages:Homebrew: 'brew bundle dump' creates Brewfile of installed packages"
-    "packages:Snap: 'snap list --all' shows all snaps including disabled"
-    "packages:Flatpak: 'flatpak list --app' shows only applications, not runtimes"
-    "packages:Build from source: './configure --prefix=\$HOME/.local && make && make install'"
-    "packages:Check dependencies: 'ldd binary' shows shared library dependencies"
-    "packages:Alternative versions: 'update-alternatives --config java' switches versions"
-    "packages:Package contents: 'dpkg -L package' or 'rpm -ql package' lists files"
-)
 
-
-# Function to get a random tip with category
-_freq_dirs_get_random_tip() {
-    local num_tips=${#PATHWISE_TIPS[@]}
-    # Zsh arrays are 1-indexed
-    local random_index=$((RANDOM % num_tips + 1))
-    local tip_with_category="${PATHWISE_TIPS[$random_index]}"
-
-    # Split category and tip
-    local category="${tip_with_category%%:*}"
-    local tip="${tip_with_category#*:}"
-
-    # Capitalize and format category name (handle underscores)
-    case "$category" in
-        pathwise) category="PathWise" ;;
-        zsh) category="Zsh" ;;
-        linux) category="Linux" ;;
-        productivity) category="Productivity" ;;
-        git) category="Git" ;;
-        advanced) category="Advanced" ;;
-        bash_strings) category="Bash Strings" ;;
-        bash_arrays) category="Bash Arrays" ;;
-        bash_loops) category="Bash Loops" ;;
-        bash_file_handling) category="Bash Files" ;;
-        bash_conditionals) category="Bash Conditionals" ;;
-        bash_variables) category="Bash Variables" ;;
-        bash_arithmetic) category="Bash Math" ;;
-        bash_traps) category="Bash Traps" ;;
-        bash_terminal) category="Bash Terminal" ;;
-        bash_internals) category="Bash Internals" ;;
-        bash_other) category="Bash Tips" ;;
-        tmux) category="Tmux" ;;
-        terminal_features) category="Terminal" ;;
-        ssh) category="SSH" ;;
-        cli_tools) category="CLI Tools" ;;
-        docker) category="Docker" ;;
-        performance) category="Performance" ;;
-        vim_nano) category="Editor" ;;
-        security) category="Security" ;;
-        networking) category="Network" ;;
-        packages) category="Packages" ;;
-        *) category="${(C)category}" ;;  # Capitalize first letter
-    esac
-
-    echo "${category} Tip: ${tip}"
-}
 # Main wfreq function with argument parsing
 wfreq() {
     _freq_dirs_load_config
@@ -2198,6 +1834,8 @@ wfreq() {
             # Show project type badge
             case "$project_type" in
                 git) project_badge=" [90m[git][0m" ;;
+                c) project_badge=" [94m[C][0m" ;;
+                cpp) project_badge=" [94m[C++][0m" ;;
                 nodejs) project_badge=" [92m[node][0m" ;;
                 python) project_badge=" [93m[python][0m" ;;
                 rust) project_badge=" [31m[rust][0m" ;;
@@ -2283,12 +1921,6 @@ wfreq() {
 
     echo ""
     echo "💡 Commands: wfreq | wfreq --insights | wfreq --config"
-    echo ""
-
-    # Display a random tip
-    local tip=$(_freq_dirs_get_random_tip)
-    echo "💭 $tip"
-    echo ""
 }
 
 # Setup jump aliases on shell startup

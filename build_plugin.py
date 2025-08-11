@@ -10,7 +10,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from python.constants.git_tracker import COMMIT_CATEGORIES
-from python.constants.tips import TIPS
 from python.constants.tools import TRACKED_TOOLS
 from python.constants.project_indicators import (
     STRONG_INDICATORS,
@@ -472,10 +471,6 @@ _freq_dirs_analyze_commits() {{
                 local keyword2=$(echo "$selected" | sed -n '2p')
                 local keyword3=$(echo "$selected" | sed -n '3p')
 
-                printf "  💡 \\033[33mTip:\\033[0m Use keywords like " >> "$temp_file"
-                printf "\\033[91m%s\\033[0m, " "$keyword1" >> "$temp_file"
-                printf "\\033[92m%s\\033[0m, or " "$keyword2" >> "$temp_file"
-                printf "\\033[94m%s\\033[0m in commits\\n" "$keyword3" >> "$temp_file"
             fi
 
             # Find most active git project
@@ -1301,83 +1296,12 @@ _freq_dirs_get_merged_data() {
 """
 
 
-def generate_tips_array() -> str:
-    """Generate shell array of tips for random selection"""
-    # Create tips with category prefixes
-    categorized_tips = []
-    for category, tips_list in TIPS.items():
-        for tip in tips_list:
-            # Escape quotes and special characters for shell
-            escaped_tip = (
-                tip.replace('"', '\\"').replace("$", "\\$").replace("`", "\\`")
-            )
-            # Add category prefix
-            categorized_tips.append(f"{category}:{escaped_tip}")
-
-    # Include ALL tips for true randomization at runtime
-    tips_array = "PATHWISE_TIPS=(\n"
-    for tip in categorized_tips:
-        tips_array += f'    "{tip}"\n'
-    tips_array += ")\n"
-
-    return tips_array
-
-
 def generate_freq_command() -> str:
     """Generate main freq command with arguments"""
     # Use color codes from our palette
 
-    # Generate tips array
-    tips_array = generate_tips_array()
-
     return f"""
-{tips_array}
 
-# Function to get a random tip with category
-_freq_dirs_get_random_tip() {{
-    local num_tips=${{#PATHWISE_TIPS[@]}}
-    # Zsh arrays are 1-indexed
-    local random_index=$((RANDOM % num_tips + 1))
-    local tip_with_category="${{PATHWISE_TIPS[$random_index]}}"
-
-    # Split category and tip
-    local category="${{tip_with_category%%:*}}"
-    local tip="${{tip_with_category#*:}}"
-
-    # Capitalize and format category name (handle underscores)
-    case "$category" in
-        pathwise) category="PathWise" ;;
-        zsh) category="Zsh" ;;
-        linux) category="Linux" ;;
-        productivity) category="Productivity" ;;
-        git) category="Git" ;;
-        advanced) category="Advanced" ;;
-        bash_strings) category="Bash Strings" ;;
-        bash_arrays) category="Bash Arrays" ;;
-        bash_loops) category="Bash Loops" ;;
-        bash_file_handling) category="Bash Files" ;;
-        bash_conditionals) category="Bash Conditionals" ;;
-        bash_variables) category="Bash Variables" ;;
-        bash_arithmetic) category="Bash Math" ;;
-        bash_traps) category="Bash Traps" ;;
-        bash_terminal) category="Bash Terminal" ;;
-        bash_internals) category="Bash Internals" ;;
-        bash_other) category="Bash Tips" ;;
-        tmux) category="Tmux" ;;
-        terminal_features) category="Terminal" ;;
-        ssh) category="SSH" ;;
-        cli_tools) category="CLI Tools" ;;
-        docker) category="Docker" ;;
-        performance) category="Performance" ;;
-        vim_nano) category="Editor" ;;
-        security) category="Security" ;;
-        networking) category="Network" ;;
-        packages) category="Packages" ;;
-        *) category="${{(C)category}}" ;;  # Capitalize first letter
-    esac
-
-    echo "${{category}} Tip: ${{tip}}"
-}}
 # Main wfreq function with argument parsing
 wfreq() {{
     _freq_dirs_load_config
@@ -1696,6 +1620,8 @@ wfreq() {{
             # Show project type badge
             case "$project_type" in
                 git) project_badge=" \033[90m[git]\033[0m" ;;
+                c) project_badge=" \033[94m[C]\033[0m" ;;
+                cpp) project_badge=" \033[94m[C++]\033[0m" ;;
                 nodejs) project_badge=" \033[92m[node]\033[0m" ;;
                 python) project_badge=" \033[93m[python]\033[0m" ;;
                 rust) project_badge=" \033[31m[rust]\033[0m" ;;
@@ -1779,12 +1705,6 @@ wfreq() {{
 
     echo ""
     echo "💡 Commands: wfreq | wfreq --insights | wfreq --config"
-    echo ""
-
-    # Display a random tip
-    local tip=$(_freq_dirs_get_random_tip)
-    echo "💭 $tip"
-    echo ""
 }}
 """
 
