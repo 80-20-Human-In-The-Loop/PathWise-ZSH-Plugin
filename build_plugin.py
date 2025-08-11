@@ -12,10 +12,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from python.constants.git_tracker import COMMIT_CATEGORIES
 from python.constants.tips import TIPS
 from python.constants.tools import TRACKED_TOOLS
+from python.constants.project_indicators import (
+    STRONG_INDICATORS,
+    MEDIUM_INDICATORS,
+)
 from python.logic.git_tracker import (
     get_category_keywords_for_shell,
     get_random_keyword_suggestions,
 )
+from python.logic.project_detector import get_project_info_for_shell
 
 
 def generate_header() -> str:
@@ -62,6 +67,9 @@ DEFAULT_MIN_TIME="5"  # Minimum seconds in directory to track
 DEFAULT_TRACK_GIT="true"
 DEFAULT_TRACK_TOOLS="true"
 DEFAULT_SORT_BY="time"  # Options: visits, time, commits
+DEFAULT_CONSOLIDATE="true"  # Enable project consolidation
+DEFAULT_CONSOLIDATE_DEPTH="10"  # Max depth to search for project root
+DEFAULT_SHOW_SUBDIR_COUNT="true"  # Show subdirectory count in display
 """
 
 
@@ -100,6 +108,9 @@ _freq_dirs_load_config() {
     [[ -z "$FREQ_TRACK_GIT" ]] && FREQ_TRACK_GIT="${DEFAULT_TRACK_GIT}"
     [[ -z "$FREQ_TRACK_TOOLS" ]] && FREQ_TRACK_TOOLS="${DEFAULT_TRACK_TOOLS}"
     [[ -z "$FREQ_SORT_BY" ]] && FREQ_SORT_BY="${DEFAULT_SORT_BY}"
+    [[ -z "$FREQ_CONSOLIDATE" ]] && FREQ_CONSOLIDATE="${DEFAULT_CONSOLIDATE}"
+    [[ -z "$FREQ_CONSOLIDATE_DEPTH" ]] && FREQ_CONSOLIDATE_DEPTH="${DEFAULT_CONSOLIDATE_DEPTH}"
+    [[ -z "$FREQ_SHOW_SUBDIR_COUNT" ]] && FREQ_SHOW_SUBDIR_COUNT="${DEFAULT_SHOW_SUBDIR_COUNT}"
 }
 
 # Save configuration
@@ -113,6 +124,9 @@ FREQ_MIN_TIME="${FREQ_MIN_TIME}"
 FREQ_TRACK_GIT="${FREQ_TRACK_GIT}"
 FREQ_TRACK_TOOLS="${FREQ_TRACK_TOOLS}"
 FREQ_SORT_BY="${FREQ_SORT_BY}"
+FREQ_CONSOLIDATE="${FREQ_CONSOLIDATE}"
+FREQ_CONSOLIDATE_DEPTH="${FREQ_CONSOLIDATE_DEPTH}"
+FREQ_SHOW_SUBDIR_COUNT="${FREQ_SHOW_SUBDIR_COUNT}"
 EOF
 }
 """
@@ -502,8 +516,8 @@ _freq_dirs_analyze_tools_multi() {
     printf "\\033[90m════════════════════════════════════\\033[0m\\n"
     echo ""
 
-    # Get merged data for top directories
-    local merged_data=$(_freq_dirs_get_merged_data)
+    # Get merged data for top directories (no consolidation for tool analysis)
+    local merged_data=$(_freq_dirs_get_merged_data 100 "false")
 
     if [[ -z "$merged_data" ]]; then
         echo "No frequently visited directories yet."
@@ -1101,12 +1115,67 @@ _freq_dirs_generate_insights() {
 """
 
 
+def generate_project_detection() -> str:
+    """Generate project root detection functions"""
+
+    # Build shell arrays for indicators
+    strong_indicators = " ".join(f'"{k}"' for k in STRONG_INDICATORS.keys())
+    medium_indicators = " ".join(f'"{k}"' for k in MEDIUM_INDICATORS.keys())
+
+    return f"""
+# Project cache file
+FREQ_DIRS_PROJECT_CACHE="${{HOME}}/.frequent_dirs.project_cache"
+
+# Strong project indicators
+FREQ_PROJECT_STRONG_INDICATORS=({strong_indicators})
+
+# Medium project indicators  
+FREQ_PROJECT_MEDIUM_INDICATORS=({medium_indicators})
+
+# Find project root for a directory
+_freq_dirs_find_project_root() {{
+    local dir="${{1}}"
+    local max_depth="${{2:-$FREQ_CONSOLIDATE_DEPTH}}"
+    
+    # Expand tilde to home directory
+    dir="${{dir/#\\~/$HOME}}"
+    
+    # Use Python detector for accurate detection
+    local result=$(python3 -c "
+import sys
+sys.path.insert(0, '{Path(__file__).resolve().parent}')
+from python.logic.project_detector import get_project_info_for_shell
+print(get_project_info_for_shell('$dir'))
+" 2>/dev/null)
+    
+    if [[ -n "$result" ]]; then
+        echo "$result"
+    else
+        # Fallback to simple detection if Python fails
+        echo "$dir|standalone|0"
+    fi
+}}
+
+# Clear project cache
+_freq_dirs_clear_project_cache() {{
+    rm -f "$FREQ_DIRS_PROJECT_CACHE"
+    python3 -c "
+import sys
+sys.path.insert(0, '{Path(__file__).resolve().parent}')
+from python.logic.project_detector import clear_cache
+clear_cache()
+" 2>/dev/null
+}}
+"""
+
+
 def generate_data_merge() -> str:
     """Generate data merging function"""
     return """
 # Merge today's and yesterday's data for display with cumulative totals
 _freq_dirs_get_merged_data() {
     local show_count="${1:-$FREQ_SHOW_COUNT}"
+    local consolidate="${2:-$FREQ_CONSOLIDATE}"  # New parameter for consolidation
     local temp_file=$(mktemp)
     local sorted_file=$(mktemp)
 
@@ -1155,10 +1224,58 @@ _freq_dirs_get_merged_data() {
         done < "$FREQ_DIRS_YESTERDAY"
     fi
 
-    # Output all directories with their cumulative totals
-    for dir in ${(k)dir_visits}; do
-        echo "${dir}|${dir_visits[$dir]}|${dir_time[$dir]}|${dir_commits[$dir]}|${dir_periods[$dir]}" >> "$temp_file"
-    done
+    # Apply project consolidation if enabled
+    if [[ "$consolidate" == "true" ]]; then
+        # New associative arrays for consolidated data
+        typeset -A project_visits
+        typeset -A project_time
+        typeset -A project_commits
+        typeset -A project_periods
+        typeset -A project_types
+        typeset -A project_subdirs
+
+        # Consolidate directories to project roots
+        for dir in ${(k)dir_visits}; do
+            # Find project root for this directory
+            local project_info=$(_freq_dirs_find_project_root "$dir")
+            local project_root=$(echo "$project_info" | cut -d'|' -f1)
+            local project_type=$(echo "$project_info" | cut -d'|' -f2)
+
+            # Aggregate metrics into project root
+            project_visits[$project_root]=$((${project_visits[$project_root]:-0} + ${dir_visits[$dir]:-0}))
+            project_time[$project_root]=$((${project_time[$project_root]:-0} + ${dir_time[$dir]:-0}))
+            project_commits[$project_root]=$((${project_commits[$project_root]:-0} + ${dir_commits[$dir]:-0}))
+            project_types[$project_root]="$project_type"
+
+            # Track subdirectories for each project
+            if [[ "$dir" != "$project_root" ]]; then
+                if [[ -z "${project_subdirs[$project_root]}" ]]; then
+                    project_subdirs[$project_root]="1"
+                else
+                    project_subdirs[$project_root]=$((${project_subdirs[$project_root]} + 1))
+                fi
+            fi
+
+            # Combine periods
+            if [[ -z "${project_periods[$project_root]}" ]]; then
+                project_periods[$project_root]="${dir_periods[$dir]}"
+            elif [[ "${project_periods[$project_root]}" != "${dir_periods[$dir]}" ]]; then
+                project_periods[$project_root]="combined"
+            fi
+        done
+
+        # Output consolidated project data
+        for project in ${(k)project_visits}; do
+            local subdir_count="${project_subdirs[$project]:-0}"
+            local project_type="${project_types[$project]}"
+            echo "${project}|${project_visits[$project]}|${project_time[$project]}|${project_commits[$project]}|${project_periods[$project]}|${project_type}|${subdir_count}" >> "$temp_file"
+        done
+    else
+        # Output raw directory data (no consolidation)
+        for dir in ${(k)dir_visits}; do
+            echo "${dir}|${dir_visits[$dir]}|${dir_time[$dir]}|${dir_commits[$dir]}|${dir_periods[$dir]}|raw|0" >> "$temp_file"
+        done
+    fi
 
     # Sort based on configuration using cumulative totals
     case "$FREQ_SORT_BY" in
@@ -1461,6 +1578,43 @@ wfreq() {{
             fi
             echo ""
 
+            printf "\\033[96m  Enable project consolidation?\\033[0m (y/n) \\033[90m[${{FREQ_CONSOLIDATE}}]\\033[0m\\n"
+            printf "  \\033[90m→ Options: y=consolidate subdirs to projects, n=show all dirs, Enter=no change\\033[0m\\n"
+            printf "  \\033[96m>\\033[0m "
+            read -t 10 response || response=""
+            if [[ -n "$response" ]]; then
+                if [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]; then
+                    FREQ_CONSOLIDATE="true"
+                else
+                    FREQ_CONSOLIDATE="false"
+                fi
+            fi
+            echo ""
+
+            if [[ "$FREQ_CONSOLIDATE" == "true" ]]; then
+                printf "\\033[96m  Max depth for project detection\\033[0m (1-10) \\033[90m[${{FREQ_CONSOLIDATE_DEPTH}}]\\033[0m\\n"
+                printf "  \\033[90m→ Options: 1-10 levels up to find project root, Enter=no change\\033[0m\\n"
+                printf "  \\033[96m>\\033[0m "
+                read -t 10 response || response=""
+                if [[ -n "$response" ]] && [[ "$response" =~ ^[0-9]+$ ]] && [[ "$response" -ge 1 ]] && [[ "$response" -le 10 ]]; then
+                    FREQ_CONSOLIDATE_DEPTH="$response"
+                fi
+                echo ""
+
+                printf "\\033[96m  Show subdirectory count?\\033[0m (y/n) \\033[90m[${{FREQ_SHOW_SUBDIR_COUNT}}]\\033[0m\\n"
+                printf "  \\033[90m→ Options: y=show 'includes X subdirs', n=hide count, Enter=no change\\033[0m\\n"
+                printf "  \\033[96m>\\033[0m "
+                read -t 10 response || response=""
+                if [[ -n "$response" ]]; then
+                    if [[ "$response" == "y" ]] || [[ "$response" == "Y" ]]; then
+                        FREQ_SHOW_SUBDIR_COUNT="true"
+                    else
+                        FREQ_SHOW_SUBDIR_COUNT="false"
+                    fi
+                fi
+                echo ""
+            fi
+
             _freq_dirs_save_config
             echo ""
             printf "\\033[92m✅ Configuration saved!\\033[0m\\n"
@@ -1520,7 +1674,8 @@ wfreq() {{
     local processed_dirs=""
 
     # Process each unique directory in order
-    while IFS='|' read -r dir count time git_count period; do
+    # New format: dir|visits|time|commits|period|project_type|subdir_count
+    while IFS='|' read -r dir count time git_count period project_type subdir_count; do
         # Skip if we've already processed this directory
         if echo "$processed_dirs" | grep -qF "|${{dir}}|"; then
             continue
@@ -1535,97 +1690,88 @@ wfreq() {{
         processed_dirs="${{processed_dirs}}|${{dir}}|"
         dir_count=$((dir_count + 1))
 
-        # Find all entries for this directory (both today and yesterday)
-        local today_entry=$(echo "$merged_data" | grep "^${{dir}}|.*|today$" | head -1)
-        local yesterday_entry=$(echo "$merged_data" | grep "^${{dir}}|.*|yesterday$" | head -1)
-
-        # Display the directory header
-        printf "  \033[36m[wj%d]\033[0m %s\n" "$i" "$dir"
+        # Display the directory header with project indicator
+        local project_badge=""
+        if [[ "$project_type" != "standalone" ]] && [[ "$project_type" != "raw" ]]; then
+            # Show project type badge
+            case "$project_type" in
+                git) project_badge=" \033[90m[git]\033[0m" ;;
+                nodejs) project_badge=" \033[92m[node]\033[0m" ;;
+                python) project_badge=" \033[93m[python]\033[0m" ;;
+                rust) project_badge=" \033[31m[rust]\033[0m" ;;
+                go) project_badge=" \033[36m[go]\033[0m" ;;
+                docker) project_badge=" \033[34m[docker]\033[0m" ;;
+                *) project_badge=" \033[90m[project]\033[0m" ;;
+            esac
+        fi
+        
+        printf "  \033[36m[wj%d]\033[0m %s%s\n" "$i" "$dir" "$project_badge"
 
         # Create the jump alias
         eval "alias wj${{i}}='cd \\"${{dir/#\\~/$HOME}}\\"'"
         i=$((i + 1))
 
-        # Display today's entry if it exists
-        if [[ -n "$today_entry" ]]; then
-            local t_count=$(echo "$today_entry" | cut -d'|' -f2)
-            local t_time=$(echo "$today_entry" | cut -d'|' -f3)
-            local t_git=$(echo "$today_entry" | cut -d'|' -f4)
+        # Display the metrics - these are already available from the merged data
+        [[ -z "$time" ]] && time=0
+        [[ -z "$git_count" ]] && git_count=0
 
-            [[ -z "$t_time" ]] && t_time=0
-            [[ -z "$t_git" ]] && t_git=0
+        local time_display=""
+        local git_display=""
 
-            local time_display=""
-            local git_display=""
-
-            if [[ $t_time -gt 0 ]]; then
-                time_display=" · $(_freq_dirs_format_time $t_time)"
-            fi
-
-            if [[ $t_git -gt 0 ]]; then
-                git_display="[$t_git commits]"
-            fi
-
-            # Color based on activity
-            local visits_color=""
-            local time_color=""
-
-            if [[ $t_count -gt 10 ]]; then
-                visits_color="\033[91m"  # Bright red for very frequent
-            elif [[ $t_count -gt 5 ]]; then
-                visits_color="\033[33m"  # Yellow for frequent
-            elif [[ $t_count -gt 2 ]]; then
-                visits_color="\033[92m"  # Bright green for moderate
-            else
-                visits_color="\033[36m"  # Cyan for low
-            fi
-
-            if [[ $t_time -gt 3600 ]]; then
-                time_color="\033[31m"  # Red for > 1 hour
-            elif [[ $t_time -gt 1800 ]]; then
-                time_color="\033[91m"  # Bright red for > 30 min
-            elif [[ $t_time -gt 600 ]]; then
-                time_color="\033[93m"  # Bright yellow for > 10 min
-            else
-                time_color="\033[92m"  # Green for < 10 min
-            fi
-
-            if [[ -n "$git_display" ]]; then
-                printf "      ├─ %s%d visits\033[0m · %s%s\033[0m today \033[38;5;220m%s\033[0m\n" \
-                    "$visits_color" "$t_count" "$time_color" "$time_display" "$git_display"
-            else
-                printf "      ├─ %s%d visits\033[0m · %s%s\033[0m today\n" \
-                    "$visits_color" "$t_count" "$time_color" "$time_display"
-            fi
+        if [[ $time -gt 0 ]]; then
+            time_display="$(_freq_dirs_format_time $time)"
         fi
 
-        # Display yesterday's entry if it exists
-        if [[ -n "$yesterday_entry" ]]; then
-            local y_count=$(echo "$yesterday_entry" | cut -d'|' -f2)
-            local y_time=$(echo "$yesterday_entry" | cut -d'|' -f3)
-            local y_git=$(echo "$yesterday_entry" | cut -d'|' -f4)
+        if [[ $git_count -gt 0 ]]; then
+            git_display=" \033[38;5;220m[$git_count commits]\033[0m"
+        fi
 
-            [[ -z "$y_time" ]] && y_time=0
-            [[ -z "$y_git" ]] && y_git=0
+        # Color based on activity
+        local visits_color=""
+        local time_color=""
 
-            local time_display=""
-            local git_display=""
+        if [[ $count -gt 10 ]]; then
+            visits_color="\033[91m"  # Bright red for very frequent
+        elif [[ $count -gt 5 ]]; then
+            visits_color="\033[33m"  # Yellow for frequent
+        elif [[ $count -gt 2 ]]; then
+            visits_color="\033[92m"  # Bright green for moderate
+        else
+            visits_color="\033[36m"  # Cyan for low
+        fi
 
-            if [[ $y_time -gt 0 ]]; then
-                time_display=" · $(_freq_dirs_format_time $y_time)"
-            fi
+        if [[ $time -gt 3600 ]]; then
+            time_color="\033[31m"  # Red for > 1 hour
+        elif [[ $time -gt 1800 ]]; then
+            time_color="\033[91m"  # Bright red for > 30 min
+        elif [[ $time -gt 600 ]]; then
+            time_color="\033[93m"  # Bright yellow for > 10 min
+        else
+            time_color="\033[92m"  # Green for < 10 min
+        fi
 
-            if [[ $y_git -gt 0 ]]; then
-                git_display="[$y_git commits]"
-            fi
+        # Display based on period type
+        local period_label=""
+        if [[ "$period" == "today" ]]; then
+            period_label=" today"
+        elif [[ "$period" == "yesterday" ]]; then
+            period_label=" yesterday"
+        elif [[ "$period" == "combined" ]]; then
+            period_label=" today & yesterday"
+        fi
 
-            if [[ -n "$git_display" ]]; then
-                printf "      ├─ \033[90m%d visits%s yesterday\033[0m \033[93m%s\033[0m\n" \
-                    "$y_count" "$time_display" "$git_display"
-            else
-                printf "      ├─ \033[90m%d visits%s yesterday\033[0m\n" \
-                    "$y_count" "$time_display"
-            fi
+        # Show the main metrics line
+        if [[ -n "$time_display" ]]; then
+            printf "      ├─ %s%d visits\033[0m · %s%s\033[0m%s%s\n" \
+                "$visits_color" "$count" "$time_color" "$time_display" "$period_label" "$git_display"
+        else
+            printf "      ├─ %s%d visits\033[0m%s%s\n" \
+                "$visits_color" "$count" "$period_label" "$git_display"
+        fi
+        
+        # Show subdirectory count if consolidation is enabled and there are subdirs
+        if [[ "$FREQ_CONSOLIDATE" == "true" ]] && [[ "$FREQ_SHOW_SUBDIR_COUNT" == "true" ]] && [[ "$subdir_count" -gt 0 ]]; then
+            printf "      └─ \033[90mincludes %d subdirectories\033[0m\n" "$subdir_count"
         fi
     done <<< "$merged_data"
 
@@ -2082,6 +2228,7 @@ def main() -> None:
     plugin_content += generate_directory_update()
     plugin_content += generate_insights()
     plugin_content += generate_data_merge()
+    plugin_content += generate_project_detection()
     plugin_content += generate_freq_command()
     plugin_content += generate_setup_functions()
     plugin_content += generate_hooks()
